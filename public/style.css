@@ -162,3 +162,47 @@ button:disabled { opacity: 0.5; cursor: not-allowed; }
 #log time { color: var(--muted); margin-right: 0.5rem; }
 
 code { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; }
+
+/* --- Setup ---------------------------------------------------------------- */
+
+details > summary { cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.5rem; }
+details > summary::-webkit-details-marker { display: none; }
+details > summary::before { content: "▸"; color: var(--muted); transition: transform 0.2s; }
+details[open] > summary::before { transform: rotate(90deg); }
+details > summary h2 { margin: 0; }
+details[open] > summary { margin-bottom: 0.75rem; }
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem 1rem;
+  margin: 0;
+  display: grid;
+  gap: 0.75rem;
+  min-width: 0;
+}
+legend { padding: 0 0.4rem; font-weight: 600; }
+fieldset p { margin: 0; }
+
+.hint { color: var(--muted); font-size: 0.9rem; margin: 0 0 0.75rem; }
+fieldset .hint { margin: 0; }
+
+label.button {
+  display: inline-block;
+  font-size: 1rem;
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  border-radius: 8px;
+  padding: 0.5rem 1.1rem;
+  cursor: pointer;
+}
+
+#qr-video { width: 100%; max-width: 420px; border-radius: 8px; background: #000; }
+
+#setup-steps { margin: 0; padding-left: 1.4rem; font-size: 0.9rem; }
+#setup-steps:empty { display: none; }
+#setup-message { margin: 0; min-height: 1.5em; }
+#setup-message.error { color: var(--bad); }
+#setup-message.success { color: var(--ok); }
+
+a { color: var(--accent); }

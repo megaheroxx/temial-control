@@ -1,4 +1,5 @@
-const TOKEN_KEY = 'temial-control-token'
+import { api, el, readToken } from './api.js'
+
 const FIELDS = ['temperature', 'duration', 'volume', 'preWashTime']
 const LOG_SIZE = 100
 
@@ -9,38 +10,6 @@ const $ = (selector, root = document) => root.querySelector(selector)
 const form = $('#brew-form')
 const message = $('#form-message')
 
-// --- API --------------------------------------------------------------------
-
-function readToken() {
-  try { return localStorage.getItem(TOKEN_KEY) || '' } catch { return '' }
-}
-
-function storeToken(value) {
-  try { localStorage.setItem(TOKEN_KEY, value) } catch { /* private mode */ }
-}
-
-async function api(path, options = {}, retry = true) {
-  const token = readToken()
-  const res = await fetch(path, {
-    ...options,
-    headers: {
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-  })
-  if (res.status === 401 && retry) {
-    const entered = prompt('API-Token (APP_TOKEN) eingeben:')
-    if (entered) {
-      storeToken(entered)
-      return api(path, options, false)
-    }
-  }
-  if (res.status === 204) return null
-  const body = await res.json()
-  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`)
-  return body
-}
-
 // --- Rendering --------------------------------------------------------------
 
 const formatTime = (ms) => new Date(ms).toLocaleTimeString('de-DE')
@@ -48,12 +17,6 @@ const formatTime = (ms) => new Date(ms).toLocaleTimeString('de-DE')
 function formatDuration(seconds) {
   const s = Math.max(0, Math.round(seconds))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
-}
-
-function el(tag, props = {}, text) {
-  const node = Object.assign(document.createElement(tag), props)
-  if (text !== undefined) node.textContent = text
-  return node
 }
 
 function renderDevices() {
@@ -138,7 +101,8 @@ function renderPresets(selectedId = form.elements.preset.value) {
 
 function addLog(entry) {
   const item = el('li')
-  item.append(el('time', {}, formatTime(entry.time)), `${entry.serialNumber}  ${entry.type}`)
+  const text = entry.type === 'setup' ? `Einrichtung: ${entry.detail}` : entry.type
+  item.append(el('time', {}, formatTime(entry.time)), `${entry.serialNumber}  ${text}`)
   const log = $('#log')
   log.prepend(item)
   while (log.children.length > LOG_SIZE) log.lastElementChild.remove()
@@ -233,7 +197,12 @@ function connectEvents() {
     devices.set(state.serialNumber, state)
     renderDevices()
   })
-  source.addEventListener('log', (event) => addLog(JSON.parse(event.data)))
+  source.addEventListener('log', (event) => {
+    const entry = JSON.parse(event.data)
+    addLog(entry)
+    // setup.js shows the setup progress next to the form.
+    document.dispatchEvent(new CustomEvent('temial:log', { detail: entry }))
+  })
 }
 
 async function init() {

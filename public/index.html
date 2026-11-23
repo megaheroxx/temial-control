@@ -14,7 +14,7 @@
 
   <main>
     <section id="devices" aria-live="polite">
-      <p class="empty">Noch keine Temial verbunden. Richte das Gerät mit der Freemial-CLI ein und gib diesen Server als <code>baseHost</code> an (siehe README).</p>
+      <p class="empty">Noch keine Temial verbunden. Richte sie unten unter <a href="#setup">„Neue Temial einrichten“</a> ein.</p>
     </section>
 
     <section class="card">
@@ -42,6 +42,62 @@
       </form>
     </section>
 
+    <section class="card" id="setup">
+      <details>
+        <summary><h2>Neue Temial einrichten</h2></summary>
+        <p class="hint">Verbindet eine Temial mit deinem WLAN und mit dieser App. Der Rechner, auf dem die App läuft, muss dafür kurz in das WLAN der Temial wechseln. Am einfachsten geht das mit einem Laptop, auf dem die App unter <code>localhost</code> läuft.</p>
+
+        <form id="setup-form">
+          <fieldset>
+            <legend>1. QR-Code der Temial</legend>
+            <p class="hint">Auf der Temial oben auf die graue Leiste tippen und „Verbinden“ wählen.</p>
+            <label>Inhalt des QR-Codes
+              <input name="qr" required autocomplete="off" spellcheck="false" placeholder="z. B. 1:2104118837:0:DE:…">
+            </label>
+            <div class="actions">
+              <button type="button" id="qr-camera" class="secondary" hidden>Mit Kamera scannen</button>
+              <label class="button secondary">Foto vom QR-Code wählen
+                <input type="file" id="qr-photo" accept="image/*" capture="environment" hidden>
+              </label>
+            </div>
+            <video id="qr-video" playsinline muted hidden></video>
+            <p id="qr-info" class="hint"></p>
+          </fieldset>
+
+          <fieldset>
+            <legend>2. WLAN und Server</legend>
+            <label>WLAN-Name
+              <input name="ssid" list="ssid-list" required maxlength="32" autocomplete="off">
+              <datalist id="ssid-list"></datalist>
+            </label>
+            <label>WLAN-Passwort
+              <input name="key" type="password" maxlength="63" autocomplete="off">
+            </label>
+            <label>Sicherheitstyp
+              <select name="securityType"><option value="">automatisch (wie von der Temial erkannt)</option></select>
+            </label>
+            <label>Server-Adresse für die Temial (baseHost)
+              <input name="baseHost" list="basehost-list" required maxlength="64" placeholder="http://192.168.178.20:3000">
+              <datalist id="basehost-list"></datalist>
+            </label>
+            <p class="hint">Die Adresse, unter der die Temial diese App im Heimnetz erreicht. Vorgeschlagen werden die Adressen dieses Rechners.</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>3. Einrichten</legend>
+            <p>Jetzt diesen Rechner mit dem WLAN <strong id="hotspot">Temial-xxxxx</strong> verbinden. Diese Seite bleibt dabei offen.</p>
+            <div class="actions">
+              <button type="submit" id="setup-submit">Einrichten</button>
+              <button type="button" id="setup-scan" class="secondary">Nur WLANs der Temial anzeigen</button>
+            </div>
+          </fieldset>
+
+          <ol id="setup-steps"></ol>
+          <p id="setup-message" role="status"></p>
+        </form>
+      </details>
+    </section>
+
     <section class="card">
       <h2>Ereignisse</h2>
       <ol id="log"></ol>
@@ -65,5 +121,6 @@
   </template>
 
   <script src="/app.js" type="module"></script>
+  <script src="/setup.js" type="module"></script>
 </body>
 </html>

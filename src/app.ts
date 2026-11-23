@@ -1,22 +1,34 @@
 import { timingSafeEqual } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
+import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
 import { DeviceHub, type DeviceState, type LogEntry } from './device-hub.ts'
+import { baseHostCandidates } from './network.ts'
 import { PresetStore } from './presets.ts'
+import { DeviceSetup, SECURITY_TYPES, SetupError, validateConfigure, type SetupTarget } from './setup.ts'
 import { LIMITS, validateRecipe } from './validation.ts'
 
 export type AppOptions = {
   dataDir: string
   /** If set, every /api request must carry this token. The device WebSocket stays open. */
   token?: string
+  /** baseHost shown in the setup form instead of the detected LAN addresses. */
+  baseHost?: string
+  /** Address of the device during setup; only overridden in tests. */
+  setupTarget?: SetupTarget
 }
 
-const PUBLIC_DIR = join(import.meta.dirname, '..', 'public')
+const ROOT = join(import.meta.dirname, '..')
+const JS = 'text/javascript; charset=utf-8'
 const STATIC_FILES: Record<string, [file: string, type: string]> = {
-  '/': ['index.html', 'text/html; charset=utf-8'],
-  '/app.js': ['app.js', 'text/javascript; charset=utf-8'],
-  '/style.css': ['style.css', 'text/css; charset=utf-8'],
+  '/': ['public/index.html', 'text/html; charset=utf-8'],
+  '/api.js': ['public/api.js', JS],
+  '/app.js': ['public/app.js', JS],
+  '/setup.js': ['public/setup.js', JS],
+  '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
+  // Served locally because the browser has no internet while on the Temial hotspot.
+  '/vendor/jsQR.js': ['node_modules/jsqr/dist/jsQR.js', JS],
 }
 const MAX_BODY = 10_000
 const SSE_KEEPALIVE_MS = 25_000
@@ -29,18 +41,20 @@ class HttpError extends Error {
   }
 }
 
-export async function createApp({ dataDir, token }: AppOptions) {
+export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOptions) {
   const hub = new DeviceHub()
   const presets = new PresetStore(dataDir)
   await presets.load()
+  const setup = new DeviceSetup((serialNumber, step) => hub.record(serialNumber, 'setup', step), setupTarget)
 
   const server = createServer(async (req, res) => {
     try {
       await route(req, res)
     } catch (err) {
-      const status = err instanceof HttpError ? err.status : 500
+      const known = err instanceof HttpError || err instanceof SetupError
+      const status = err instanceof HttpError ? err.status : known ? 400 : 500
       if (status === 500) console.error(err)
-      sendJson(res, status, { error: err instanceof HttpError ? err.message : 'Interner Fehler' })
+      sendJson(res, status, { error: known ? err.message : 'Interner Fehler' })
     }
   })
 
@@ -62,7 +76,7 @@ export async function createApp({ dataDir, token }: AppOptions) {
       const entry = STATIC_FILES[path]
       if (!entry || req.method !== 'GET') throw new HttpError(404, 'Nicht gefunden')
       res.writeHead(200, { 'Content-Type': entry[1], 'Cache-Control': 'no-cache' })
-      res.end(await readFile(join(PUBLIC_DIR, entry[0])))
+      res.end(await readFile(join(ROOT, entry[0])))
       return
     }
 
@@ -102,6 +116,23 @@ export async function createApp({ dataDir, token }: AppOptions) {
 
       case 'GET /events':
         return streamEvents(req, res)
+
+      case 'GET /setup': {
+        const { port } = server.address() as AddressInfo
+        return sendJson(res, 200, {
+          baseHosts: baseHostCandidates(port, baseHost),
+          securityTypes: SECURITY_TYPES,
+          busy: setup.busy,
+        })
+      }
+
+      case 'POST /setup/:id': {
+        const body = await readJson(req)
+        if (setup.busy) throw new HttpError(409, 'Es läuft bereits eine Einrichtung')
+        if (segments[1] === 'scan') return sendJson(res, 200, await setup.scan((body as { qr?: unknown })?.qr))
+        if (segments[1] === 'configure') return sendJson(res, 200, await setup.configure(validateConfigure(body)))
+        break
+      }
     }
 
     throw new HttpError(404, 'Nicht gefunden')

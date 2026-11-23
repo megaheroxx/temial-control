@@ -7,7 +7,22 @@ Die Temial verbindet sich per WebSocket direkt mit dieser App, sie ist also selb
 - **Web-Dashboard**: Live-Status (Deckel, Brühkammer, Frischwasser, Abwassertank, WLAN, Firmware) und Fortschritt des Brühvorgangs
 - **Tee brühen**: Name, Temperatur, Ziehzeit, Menge und Vorspülzeit frei wählbar
 - **Presets**: gespeichert in `data/presets.json`, mit einigen Standard-Tees vorbelegt
+- **Einrichtung neuer Geräte** direkt im Dashboard: QR-Code per Kamera oder Foto einlesen, WLAN wählen, fertig
 - **REST-API und Server-Sent Events**, um eigene Automationen anzubinden (z. B. Home Assistant)
+
+## Screenshots
+
+<p>
+  <img src="docs/screenshots/dashboard-hell.png" alt="Dashboard mit laufendem Brühvorgang, helles Design" width="49%">
+  <img src="docs/screenshots/dashboard-dunkel.png" alt="Dashboard mit laufendem Brühvorgang, dunkles Design" width="49%">
+</p>
+
+<p>
+  <img src="docs/screenshots/einrichtung.png" alt="Einrichtung einer neuen Temial im Dashboard" width="70%">
+  <img src="docs/screenshots/dashboard-mobil.png" alt="Dashboard auf dem Handy" width="27%">
+</p>
+
+Die Daten auf den Bildern stammen von einer simulierten Temial.
 
 ## Voraussetzungen
 
@@ -53,19 +68,24 @@ Die Presets liegen im Volume `/data`. Als `baseHost` für die Temial gibst du di
 
 ## Temial mit der App verbinden
 
-Einmalig, mit der offiziellen [Freemial-CLI](https://www.npmjs.com/package/@freemial/cli):
+Einmalig pro Gerät, direkt im Dashboard unter **„Neue Temial einrichten“**:
 
-1. Temial einschalten, oben auf die graue Leiste tippen, **„Verbinden“** wählen.
-2. Den angezeigten QR-Code auslesen, z. B. per Foto auf dem Handy, und den Text kopieren.
-3. Mit dem WLAN `Temial-xxxxx` verbinden (xxxxx = letzte 5 Stellen der Seriennummer).
-4. CLI ausführen. Als `baseHost` die Adresse angeben, die `npm start` ausgegeben hat:
+1. Auf der Temial oben auf die graue Leiste tippen und **„Verbinden“** wählen. Es erscheint ein QR-Code.
+2. QR-Code einlesen: **„Mit Kamera scannen“** (Webcam, nur unter `localhost` oder HTTPS), **„Foto vom QR-Code wählen“** oder den Text einfügen.
+3. WLAN-Name und Passwort eintragen. Die Server-Adresse (`baseHost`) ist mit der Adresse dieses Rechners vorausgefüllt.
+4. Den Rechner mit dem WLAN **`Temial-xxxxx`** verbinden (xxxxx = letzte 5 Stellen der Seriennummer, das Dashboard zeigt den Namen an). Die Seite bleibt offen.
+5. **„Einrichten“** klicken. Die App verbindet sich mit der Temial, prüft die Seriennummer, sucht WLANs und überträgt die Einstellungen. Den Fortschritt zeigt sie Schritt für Schritt an.
+6. Zurück ins normale WLAN wechseln. Die Temial meldet sich kurz darauf im Dashboard.
 
-   ```bash
-   npx -y @freemial/cli "<QR-Inhalt>" --ssid DeinWLAN --key DeinPasswort --baseHost http://192.168.178.20:3000
-   ```
+**Wichtig:** Während der Einrichtung muss der Rechner, **auf dem die App läuft**, im WLAN der Temial sein. Nur dort ist das Gerät unter `192.168.1.1:4478` erreichbar. Läuft die App per Docker auf einem NAS oder Server am Kabel, richte die Temial einmal von einem Laptop aus ein (`npm start` oder Docker Desktop) und trage als Server-Adresse die des NAS ein. Danach verbindet sich die Temial direkt mit dem NAS.
 
-   Für versteckte WLANs gibt es `--force --securityType WPA2`. Alle Optionen zeigt `npx -y @freemial/cli --help`.
-5. Zurück ins normale WLAN wechseln. Die Temial meldet sich kurz darauf im Dashboard.
+Weitere Einschränkungen: WLAN-Name und Passwort dürfen keine Umlaute enthalten, weil das Freemial-Protokoll nur ASCII korrekt überträgt. Für versteckte WLANs den Sicherheitstyp von Hand wählen.
+
+Alternativ geht die Einrichtung weiter über die offizielle [Freemial-CLI](https://www.npmjs.com/package/@freemial/cli):
+
+```bash
+npx -y @freemial/cli "<QR-Inhalt>" --ssid DeinWLAN --key DeinPasswort --baseHost http://192.168.178.20:3000
+```
 
 ## API
 
@@ -80,6 +100,9 @@ Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage d
 | `DELETE` | `/api/presets/:id` | Preset löschen |
 | `GET` | `/api/config` | Erlaubte Wertebereiche |
 | `GET` | `/api/events` | Server-Sent Events: `snapshot`, `device`, `log` |
+| `GET` | `/api/setup` | Vorschläge für `baseHost`, Sicherheitstypen, ob eine Einrichtung läuft |
+| `POST` | `/api/setup/scan` | WLANs anzeigen, die die Temial sieht. Body: `{ qr }` |
+| `POST` | `/api/setup/configure` | Temial einrichten. Body: `{ qr, ssid, key, baseHost, securityType? }` |
 
 Beispiel:
 
@@ -92,7 +115,8 @@ curl -X POST http://localhost:3000/api/devices/123456789/brew \
 ## Sicherheit
 
 - **Nicht ins Internet stellen.** Der Geräte-WebSocket hat keine Authentifizierung, so wie beim Original. Die Temial schickt keinen Token mit.
-- Im Heimnetz mindestens `APP_TOKEN` setzen, wenn andere im Netz nicht brühen sollen.
+- Im Heimnetz mindestens `APP_TOKEN` setzen, wenn andere im Netz nicht brühen oder neue Geräte einrichten sollen.
+- Das WLAN-Passwort aus der Einrichtung wird nur an die Temial weitergegeben und nirgends gespeichert.
 - Kein Reverse-Proxy mit HTTP/2 davor: Die Temial liest HTTP-Header case-sensitiv und verbindet sich nicht, wenn sie kleingeschrieben ankommen.
 
 ## Bekannte Grenzen
@@ -116,6 +140,7 @@ npm run typecheck
 | [src/device-hub.ts](src/device-hub.ts) | WebSocket-Server für Geräte, Zustand, Ereignislog |
 | [src/app.ts](src/app.ts) | HTTP-Server, REST-API, SSE, Auslieferung des Dashboards |
 | [src/presets.ts](src/presets.ts) | Preset-Speicher |
+| [src/setup.ts](src/setup.ts) | Einrichtung über den Hotspot der Temial (mit `@freemial/connect`) |
 | [public/](public/) | Dashboard (HTML/CSS/JS ohne Framework) |
 
 ## Lizenz

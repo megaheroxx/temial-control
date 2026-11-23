@@ -68,7 +68,7 @@ export class DeviceHub extends EventEmitter {
 
     ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe)))
     state.lastBrew = { ...recipe, sentAt: Date.now() }
-    this.#record(serialNumber, 'brewCommand', recipe)
+    this.record(serialNumber, 'brewCommand', recipe)
     this.emit('device', state)
     return true
   }
@@ -96,7 +96,7 @@ export class DeviceHub extends EventEmitter {
     ws.on('message', (data) => {
       const message = parseDeviceMessage(data.toString())
       if (!message) {
-        this.#record(serialNumber ?? '?', 'invalid', data.toString().slice(0, 200))
+        this.record(serialNumber ?? '?', 'invalid', data.toString().slice(0, 200))
         return
       }
       if (serialNumber !== message.serialNumber) {
@@ -114,7 +114,7 @@ export class DeviceHub extends EventEmitter {
       if (state) {
         state.connected = false
         state.connectedAt = null
-        this.#record(serialNumber, 'disconnected')
+        this.record(serialNumber, 'disconnected')
         this.emit('device', state)
       }
     })
@@ -128,7 +128,7 @@ export class DeviceHub extends EventEmitter {
     const state = this.#state(serialNumber)
     state.connected = true
     state.connectedAt = Date.now()
-    this.#record(serialNumber, 'connected')
+    this.record(serialNumber, 'connected')
     this.emit('device', state)
   }
 
@@ -141,26 +141,26 @@ export class DeviceHub extends EventEmitter {
         if (typeof code === 'string') {
           ws.send(JSON.stringify(bindStatusMessage(serialNumber, code, 'BOUND')))
         }
-        this.#record(serialNumber, 'bind')
+        this.record(serialNumber, 'bind')
         break
       }
       case 'checkUpdate':
         state.versions = content as VersionInfo
-        this.#record(serialNumber, 'checkUpdate', content)
+        this.record(serialNumber, 'checkUpdate', content)
         break
       case 'deviceStatus':
         state.deviceStatus = content as DeviceStatus
-        this.#record(serialNumber, 'deviceStatus')
+        this.record(serialNumber, 'deviceStatus')
         break
       case 'brewStatus':
         state.brewStatus = content as BrewStatus
         state.brewStatusAt = Date.now()
-        this.#record(serialNumber, 'brewStatus')
+        this.record(serialNumber, 'brewStatus')
         break
       case 'messageCountRequest':
         break
       default:
-        this.#record(serialNumber, 'unhandled:' + op, content)
+        this.record(serialNumber, 'unhandled:' + op, content)
     }
 
     this.emit('device', state)
@@ -186,7 +186,8 @@ export class DeviceHub extends EventEmitter {
     return state
   }
 
-  #record(serialNumber: string, type: string, detail?: unknown) {
+  /** Adds an entry to the event log (also used for setup progress). */
+  record(serialNumber: string, type: string, detail?: unknown) {
     const entry: LogEntry = { time: Date.now(), serialNumber, type, detail }
     this.#log.push(entry)
     if (this.#log.length > LOG_SIZE) this.#log.shift()
