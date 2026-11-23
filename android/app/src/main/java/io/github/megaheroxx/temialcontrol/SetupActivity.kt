@@ -24,9 +24,8 @@ import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
-import com.google.mlkit.vision.barcode.common.Barcode
-import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
-import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
+import android.content.Intent
+import com.google.zxing.integration.android.IntentIntegrator
 import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.NoRouteToHostException
@@ -138,10 +137,23 @@ class SetupActivity : Activity() {
     // --- QR code ------------------------------------------------------------
 
     private fun scanQr() {
-        val options = GmsBarcodeScannerOptions.Builder().setBarcodeFormats(Barcode.FORMAT_QR_CODE).build()
-        GmsBarcodeScanning.getClient(this, options).startScan()
-            .addOnSuccessListener { barcode -> barcode.rawValue?.let { qrInput.setText(it) } }
-            .addOnFailureListener { showMessage("QR-Scanner nicht verfügbar: ${it.message}. Inhalt bitte von Hand einfügen.", error = true) }
+        IntentIntegrator(this)
+            .setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
+            .setPrompt("QR-Code auf dem Display der Temial scannen")
+            .setBeepEnabled(false)
+            .setOrientationLocked(false)
+            .initiateScan()
+    }
+
+    @Deprecated("Uses the platform API without AndroidX")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+        if (result != null) {
+            result.contents?.let { qrInput.setText(it) }
+        } else {
+            @Suppress("DEPRECATION")
+            super.onActivityResult(requestCode, resultCode, data)
+        }
     }
 
     private fun updateQrInfo() {

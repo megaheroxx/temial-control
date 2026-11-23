@@ -53,7 +53,7 @@ android {
 }
 
 dependencies {
-    // QR scanner UI from Google Play services: no camera permission needed, the scanner runs in its own module.
-    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    // QR scanner that runs fully inside the app (ZXing, Apache-2.0) – no Google Play services needed.
+    implementation("com.journeyapps:zxing-android-embedded:4.3.0")
     testImplementation("junit:junit:4.13.2")
 }

@@ -162,10 +162,11 @@ object TemialProtocol {
 
 /** An encrypted connection to the device hotspot. The cipher streams must stay alive for the whole connection. */
 class TemialLink(private val socket: Socket, pairingCode: String) : Closeable {
-    private val key = SecretKeySpec(pairingCode.toByteArray(Charsets.UTF_8), "AES")
-    private val iv = IvParameterSpec(ByteArray(16))
-    private val encryptor = Cipher.getInstance("AES/CTR/NoPadding").apply { init(Cipher.ENCRYPT_MODE, key, iv) }
-    private val decryptor = Cipher.getInstance("AES/CTR/NoPadding").apply { init(Cipher.DECRYPT_MODE, key, iv) }
+    // Not named key/iv: inside Cipher.apply {} those would resolve to Cipher's own properties.
+    private val keySpec = SecretKeySpec(pairingCode.toByteArray(Charsets.UTF_8), "AES")
+    private val ivSpec = IvParameterSpec(ByteArray(16))
+    private val encryptor = Cipher.getInstance("AES/CTR/NoPadding").apply { init(Cipher.ENCRYPT_MODE, keySpec, ivSpec) }
+    private val decryptor = Cipher.getInstance("AES/CTR/NoPadding").apply { init(Cipher.DECRYPT_MODE, keySpec, ivSpec) }
 
     fun send(payload: ByteArray) {
         socket.getOutputStream().apply {
