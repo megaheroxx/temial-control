@@ -1,0 +1,80 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Connect Temial Control",
+        "description": "Address of the Temial Control app, the same one you open the dashboard with.",
+        "data": {
+          "url": "Address",
+          "token": "API token"
+        },
+        "data_description": {
+          "url": "For example http://192.168.178.20:3000",
+          "token": "Only needed if APP_TOKEN is set in the app."
+        }
+      },
+      "reauth_confirm": {
+        "title": "New API token",
+        "description": "The app rejected the stored token. Please enter the current APP_TOKEN.",
+        "data": {
+          "token": "API token"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Temial Control cannot be reached at this address.",
+      "invalid_auth": "The API token is missing or wrong.",
+      "invalid_url": "The address must look like http://192.168.178.20:3000 (no path)."
+    },
+    "abort": {
+      "already_configured": "This Temial Control instance is already configured.",
+      "reauth_successful": "The token has been updated."
+    }
+  },
+  "entity": {
+    "sensor": {
+      "remaining_time": { "name": "Remaining time" },
+      "temperature": { "name": "Brew temperature" },
+      "pumped_volume": { "name": "Pumped volume" },
+      "last_tea": { "name": "Last tea" },
+      "brew_phase": { "name": "Brew phase" },
+      "wifi_signal": { "name": "Wi-Fi signal" },
+      "firmware": { "name": "Firmware" },
+      "water_hardness": { "name": "Water hardness" }
+    },
+    "binary_sensor": {
+      "connected": { "name": "Connected" },
+      "brewing": { "name": "Brewing" },
+      "lid_closed": { "name": "Lid closed" },
+      "chamber_present": { "name": "Brewing chamber inserted" },
+      "fresh_water_missing": { "name": "Fresh water missing" },
+      "waste_tank_full": { "name": "Waste water tank full" },
+      "waste_tank_missing": { "name": "Waste water tank missing" }
+    },
+    "button": {
+      "brew_preset": { "name": "Brew {preset}" }
+    }
+  },
+  "services": {
+    "brew": {
+      "name": "Brew tea",
+      "description": "Brews a tea with custom settings.",
+      "fields": {
+        "device_id": { "name": "Temial", "description": "The Temial that should brew." },
+        "name": { "name": "Name", "description": "Name of the tea, shown in the dashboard." },
+        "temperature": { "name": "Temperature", "description": "Brew temperature in °C." },
+        "duration": { "name": "Steeping time", "description": "Steeping time in seconds." },
+        "volume": { "name": "Volume", "description": "Amount of water in milliliters." },
+        "pre_wash_time": { "name": "Pre-wash", "description": "Pre-wash time in seconds." }
+      }
+    },
+    "brew_preset": {
+      "name": "Brew preset",
+      "description": "Brews a preset stored in the app.",
+      "fields": {
+        "device_id": { "name": "Temial", "description": "The Temial that should brew." },
+        "preset": { "name": "Preset", "description": "Name of the preset, e.g. \"Green tea\"." }
+      }
+    }
+  }
+}

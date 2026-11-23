@@ -112,6 +112,63 @@ curl -X POST http://localhost:3000/api/devices/123456789/brew \
   -d '{"name":"Sencha","temperature":80,"duration":120,"volume":300,"preWashTime":0}'
 ```
 
+## Home Assistant
+
+Unter [custom_components/temial_control/](custom_components/temial_control/) liegt eine Integration für Home Assistant. Sie wird über die Oberfläche eingerichtet und braucht kein YAML.
+
+**Installation**
+
+- **Manuell:** Den Ordner `custom_components/temial_control` nach `/config/custom_components/temial_control` kopieren, z. B. mit dem File-Editor- oder Samba-Add-on. Danach Home Assistant neu starten.
+- **HACS:** HACS → Benutzerdefinierte Repositories → `https://github.com/megaheroxx/temial-control`, Typ „Integration“. HACS kann private Repositories in der Regel nicht laden. Das geht erst, wenn das Repo öffentlich ist.
+
+Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → „Temial Control“** die Adresse der App eingeben, z. B. `http://192.168.178.20:3000`, und falls gesetzt den `APP_TOKEN`.
+
+**Was du bekommst**, pro Temial als eigenes Gerät:
+
+| Typ | Entitäten |
+|---|---|
+| Sensoren | Restzeit, Brühtemperatur, Gepumpte Menge, Letzter Tee, dazu als Diagnose Brühphase, WLAN-Signal, Firmware und Wasserhärte |
+| Binärsensoren | Verbunden, Brüht, Deckel geschlossen, Brühkammer eingesetzt, Frischwasser fehlt, Abwassertank voll, Abwassertank fehlt |
+| Buttons | „… brühen“ für jedes Preset aus der App. Neue Presets erscheinen automatisch. |
+
+Änderungen kommen sofort über den Event-Stream der App an. Zusätzlich fragt die Integration alle 30 Sekunden ab, falls der Stream abreißt.
+
+**Aktionen für Automationen**
+
+```yaml
+# Preset aus der App
+action: temial_control.brew_preset
+data:
+  device_id: <Temial auswählen>
+  preset: Grüner Tee
+
+# Freie Werte
+action: temial_control.brew
+data:
+  device_id: <Temial auswählen>
+  name: Sencha
+  temperature: 80
+  duration: 120
+  volume: 300
+  pre_wash_time: 0
+```
+
+Beispiel „Tee ist fertig“-Benachrichtigung:
+
+```yaml
+triggers:
+  - trigger: state
+    entity_id: binary_sensor.temial_2104118837_bruht
+    from: "on"
+    to: "off"
+actions:
+  - action: notify.notify
+    data:
+      message: Dein Tee ist fertig 🍵
+```
+
+Die Entity-IDs hängen von Seriennummer und Sprache ab. Du findest sie auf der Geräteseite.
+
 ## Sicherheit
 
 - **Nicht ins Internet stellen.** Der Geräte-WebSocket hat keine Authentifizierung, so wie beim Original. Die Temial schickt keinen Token mit.
@@ -134,6 +191,13 @@ npm test           # Tests mit simulierter Temial
 npm run typecheck
 ```
 
+Tests der Home-Assistant-Integration (Python 3.14):
+
+```bash
+pip install pytest-homeassistant-custom-component
+pytest
+```
+
 | Datei | Inhalt |
 |---|---|
 | [src/protocol.ts](src/protocol.ts) | Nachrichtenformat der Temial (nach der Freemial-Referenz) |
@@ -142,6 +206,8 @@ npm run typecheck
 | [src/presets.ts](src/presets.ts) | Preset-Speicher |
 | [src/setup.ts](src/setup.ts) | Einrichtung über den Hotspot der Temial (mit `@freemial/connect`) |
 | [public/](public/) | Dashboard (HTML/CSS/JS ohne Framework) |
+| [custom_components/temial_control/](custom_components/temial_control/) | Home-Assistant-Integration (Python) |
+| [tests_ha/](tests_ha/) | Tests der Integration gegen ein echtes Home Assistant |
 
 ## Lizenz
 

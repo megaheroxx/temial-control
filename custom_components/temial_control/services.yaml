@@ -1,0 +1,62 @@
+brew:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: temial_control
+    name:
+      required: true
+      example: Sencha
+      default: Tee
+      selector:
+        text:
+    temperature:
+      required: true
+      default: 90
+      selector:
+        number:
+          min: 40
+          max: 100
+          unit_of_measurement: "°C"
+          mode: slider
+    duration:
+      required: true
+      default: 180
+      selector:
+        number:
+          min: 10
+          max: 1800
+          unit_of_measurement: s
+          mode: box
+    volume:
+      required: true
+      default: 350
+      selector:
+        number:
+          min: 50
+          max: 1000
+          step: 10
+          unit_of_measurement: ml
+          mode: box
+    pre_wash_time:
+      default: 0
+      selector:
+        number:
+          min: 0
+          max: 60
+          unit_of_measurement: s
+          mode: box
+
+brew_preset:
+  fields:
+    device_id:
+      required: true
+      selector:
+        device:
+          integration: temial_control
+    preset:
+      required: true
+      example: Grüner Tee
+      selector:
+        text:

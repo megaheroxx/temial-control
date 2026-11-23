@@ -8,3 +8,9 @@ test
 Dockerfile
 docker-compose.yml
 README.md
+custom_components
+tests_ha
+hacs.json
+pyproject.toml
+docs
+.github

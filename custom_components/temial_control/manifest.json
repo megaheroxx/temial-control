@@ -1,0 +1,12 @@
+{
+  "domain": "temial_control",
+  "name": "Temial Control",
+  "codeowners": ["@megaheroxx"],
+  "config_flow": true,
+  "documentation": "https://github.com/megaheroxx/temial-control",
+  "integration_type": "hub",
+  "iot_class": "local_push",
+  "issue_tracker": "https://github.com/megaheroxx/temial-control/issues",
+  "requirements": [],
+  "version": "0.3.0"
+}

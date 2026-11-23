@@ -1,0 +1,101 @@
+"""Actions (services) to brew tea from automations."""
+
+from __future__ import annotations
+
+from typing import Any
+
+import voluptuous as vol
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant, ServiceCall, callback
+from homeassistant.exceptions import HomeAssistantError, ServiceValidationError
+from homeassistant.helpers import config_validation as cv, device_registry as dr
+
+from .api import TemialApiError, TemialNotConnectedError
+from .const import DOMAIN, LIMITS, NAME_MAX
+from .coordinator import TemialCoordinator
+
+SERVICE_BREW = "brew"
+SERVICE_BREW_PRESET = "brew_preset"
+ATTR_DEVICE_ID = "device_id"
+ATTR_PRESET = "preset"
+
+
+def _bounded(key: str) -> vol.All:
+    low, high = LIMITS[key]
+    return vol.All(vol.Coerce(int), vol.Range(min=low, max=high))
+
+
+BREW_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Required("name"): vol.All(cv.string, vol.Strip, vol.Length(min=1, max=NAME_MAX)),
+        vol.Required("temperature"): _bounded("temperature"),
+        vol.Required("duration"): _bounded("duration"),
+        vol.Required("volume"): _bounded("volume"),
+        vol.Optional("pre_wash_time", default=0): _bounded("pre_wash_time"),
+    }
+)
+
+BREW_PRESET_SCHEMA = vol.Schema(
+    {
+        vol.Required(ATTR_DEVICE_ID): cv.string,
+        vol.Required(ATTR_PRESET): vol.All(cv.string, vol.Strip, vol.Length(min=1)),
+    }
+)
+
+
+def recipe_from_preset(preset: dict[str, Any]) -> dict[str, Any]:
+    """Build the API recipe from a preset returned by the app."""
+    return {key: preset[key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}
+
+
+async def async_brew(coordinator: TemialCoordinator, serial_number: str, recipe: dict[str, Any]) -> None:
+    """Send a brew command and translate API errors for the UI."""
+    try:
+        await coordinator.api.brew(serial_number, recipe)
+    except TemialNotConnectedError as err:
+        raise HomeAssistantError(f"Temial {serial_number} ist nicht verbunden") from err
+    except TemialApiError as err:
+        raise HomeAssistantError(f"Brühen fehlgeschlagen: {err}") from err
+
+
+def _resolve_device(hass: HomeAssistant, device_id: str) -> tuple[TemialCoordinator, str]:
+    device = dr.async_get(hass).async_get(device_id)
+    serial = next((ident for domain, ident in device.identifiers if domain == DOMAIN), None) if device else None
+    if device is None or serial is None:
+        raise ServiceValidationError(f"Gerät {device_id} ist keine Temial")
+    for entry_id in device.config_entries:
+        entry = hass.config_entries.async_get_entry(entry_id)
+        if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
+            return entry.runtime_data, serial
+    raise ServiceValidationError("Temial Control ist für dieses Gerät nicht geladen")
+
+
+@callback
+def async_setup_services(hass: HomeAssistant) -> None:
+    """Register the brew actions."""
+
+    async def brew(call: ServiceCall) -> None:
+        coordinator, serial = _resolve_device(hass, call.data[ATTR_DEVICE_ID])
+        recipe = {
+            "name": call.data["name"],
+            "temperature": call.data["temperature"],
+            "duration": call.data["duration"],
+            "volume": call.data["volume"],
+            "preWashTime": call.data["pre_wash_time"],
+        }
+        await async_brew(coordinator, serial, recipe)
+
+    async def brew_preset(call: ServiceCall) -> None:
+        coordinator, serial = _resolve_device(hass, call.data[ATTR_DEVICE_ID])
+        wanted = call.data[ATTR_PRESET].casefold()
+        presets = coordinator.data.presets
+        preset = next((p for p in presets if wanted in (p["name"].casefold(), p["id"])), None)
+        if preset is None:
+            names = ", ".join(p["name"] for p in presets) or "keine"
+            raise ServiceValidationError(f"Preset „{call.data[ATTR_PRESET]}“ nicht gefunden. Vorhanden: {names}")
+        await async_brew(coordinator, serial, recipe_from_preset(preset))
+
+    hass.services.async_register(DOMAIN, SERVICE_BREW, brew, schema=BREW_SCHEMA)
+    hass.services.async_register(DOMAIN, SERVICE_BREW_PRESET, brew_preset, schema=BREW_PRESET_SCHEMA)
