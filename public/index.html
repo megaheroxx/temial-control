@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Temial Control</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header>
+    <h1>Temial Control</h1>
+    <span id="connection" class="pill">verbinde …</span>
+  </header>
+
+  <main>
+    <section id="devices" aria-live="polite">
+      <p class="empty">Noch keine Temial verbunden. Richte das Gerät mit der Freemial-CLI ein und gib diesen Server als <code>baseHost</code> an (siehe README).</p>
+    </section>
+
+    <section class="card">
+      <h2>Tee brühen</h2>
+      <form id="brew-form">
+        <label>Gerät
+          <select name="device" required></select>
+        </label>
+        <label>Preset
+          <select name="preset"><option value="">– eigenes Rezept –</option></select>
+        </label>
+        <label>Name <input name="name" required maxlength="40" value="Mein Tee"></label>
+        <div class="grid">
+          <label>Temperatur (°C) <input name="temperature" type="number" required value="90"></label>
+          <label>Ziehzeit (s) <input name="duration" type="number" required value="180"></label>
+          <label>Menge (ml) <input name="volume" type="number" required value="350"></label>
+          <label>Vorspülen (s) <input name="preWashTime" type="number" required value="10"></label>
+        </div>
+        <div class="actions">
+          <button type="submit">Brühen</button>
+          <button type="button" id="save-preset" class="secondary">Als Preset speichern</button>
+          <button type="button" id="delete-preset" class="secondary danger" hidden>Preset löschen</button>
+        </div>
+        <p id="form-message" role="status"></p>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Ereignisse</h2>
+      <ol id="log"></ol>
+    </section>
+  </main>
+
+  <template id="device-template">
+    <article class="card device">
+      <div class="device-head">
+        <h2 class="serial"></h2>
+        <span class="pill state"></span>
+      </div>
+      <ul class="checks"></ul>
+      <div class="brew" hidden>
+        <h3>Brühvorgang</h3>
+        <div class="progress"><div class="bar"></div></div>
+        <dl class="brew-stats"></dl>
+      </div>
+      <p class="meta"></p>
+    </article>
+  </template>
+
+  <script src="/app.js" type="module"></script>
+</body>
+</html>
