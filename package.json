@@ -1,6 +1,6 @@
 {
   "name": "temial-control",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "description": "Eigene Steuerzentrale für die Vorwerk Temial: lokaler, Freemial-kompatibler Server mit Web-Dashboard",
   "license": "AGPL-3.0-or-later",

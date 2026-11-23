@@ -25,7 +25,8 @@ import android.widget.ScrollView
 import android.widget.Spinner
 import android.widget.TextView
 import android.content.Intent
-import com.google.zxing.integration.android.IntentIntegrator
+import com.google.zxing.client.android.Intents
+import com.journeyapps.barcodescanner.CaptureActivity
 import java.net.ConnectException
 import java.net.InetSocketAddress
 import java.net.NoRouteToHostException
@@ -136,20 +137,26 @@ class SetupActivity : Activity() {
 
     // --- QR code ------------------------------------------------------------
 
+    /** Opens ZXing's in-app scanner directly (IntentIntegrator would pull in androidx.fragment). */
     private fun scanQr() {
-        IntentIntegrator(this)
-            .setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
-            .setPrompt("QR-Code auf dem Display der Temial scannen")
-            .setBeepEnabled(false)
-            .setOrientationLocked(false)
-            .initiateScan()
+        val intent = Intent(this, CaptureActivity::class.java)
+            .setAction(Intents.Scan.ACTION)
+            .putExtra(Intents.Scan.FORMATS, "QR_CODE")
+            .putExtra(Intents.Scan.PROMPT_MESSAGE, "QR-Code auf dem Display der Temial scannen")
+            .putExtra(Intents.Scan.BEEP_ENABLED, false)
+            .putExtra(Intents.Scan.ORIENTATION_LOCKED, false)
+        try {
+            @Suppress("DEPRECATION")
+            startActivityForResult(intent, SCAN_REQUEST)
+        } catch (e: Throwable) {
+            showMessage("QR-Scanner konnte nicht gestartet werden (${e.javaClass.simpleName}). Inhalt bitte von Hand einfügen.", error = true)
+        }
     }
 
     @Deprecated("Uses the platform API without AndroidX")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-        if (result != null) {
-            result.contents?.let { qrInput.setText(it) }
+        if (requestCode == SCAN_REQUEST) {
+            if (resultCode == RESULT_OK) data?.getStringExtra(Intents.Scan.RESULT)?.let { qrInput.setText(it) }
         } else {
             @Suppress("DEPRECATION")
             super.onActivityResult(requestCode, resultCode, data)
@@ -388,5 +395,6 @@ class SetupActivity : Activity() {
     companion object {
         private const val CONNECT_TIMEOUT_MS = 10_000
         private const val HOTSPOT_TIMEOUT_MS = 60_000
+        private const val SCAN_REQUEST = 1
     }
 }
