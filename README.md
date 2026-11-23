@@ -112,6 +112,23 @@ curl -X POST http://localhost:3000/api/devices/123456789/brew \
   -d '{"name":"Sencha","temperature":80,"duration":120,"volume":300,"preWashTime":0}'
 ```
 
+## Android-App
+
+Unter [android/](android/) liegt eine native Android-App (ab Android 8):
+
+- zeigt das Dashboard deines Servers als App
+- **Benachrichtigungen**, auch bei geschlossener App: „Dein Tee ist fertig“, „Frischwasser auffüllen“, „Abwassertank leeren“
+- Fortschritt mit Restzeit in der Benachrichtigungsleiste, während die Temial brüht
+- startet die Benachrichtigungen nach einem Neustart des Handys von selbst
+
+Die APK baut GitHub Actions bei jedem Release und hängt sie dort an (`temial-control-<version>.apk`). Installieren: APK aufs Handy laden, öffnen und die Installation aus dieser Quelle erlauben. Beim ersten Start fragt die App nach der Server-Adresse, z. B. `http://192.168.1.40:3010`, und optional nach dem `APP_TOKEN`.
+
+Damit spätere Versionen als Update über die installierte App gehen, muss jede APK mit demselben Schlüssel signiert sein. Dafür braucht das Repo die Actions-Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` und `ANDROID_KEY_ALIAS`. Ohne sie signiert der Workflow mit einem Debug-Schlüssel, und Updates gehen nur nach einer Deinstallation.
+
+Für die Benachrichtigungen hält die App eine dauerhafte Verbindung zum Server und zeigt dafür eine stille Status-Benachrichtigung. Das ist bei Android Pflicht. Die Funktion lässt sich in den App-Einstellungen abschalten.
+
+Lokal bauen (JDK 17, Android SDK und Gradle 8.10 nötig): `cd android && gradle assembleRelease`
+
 ## Home Assistant
 
 Unter [custom_components/temial_control/](custom_components/temial_control/) liegt eine Integration für Home Assistant. Sie wird über die Oberfläche eingerichtet und braucht kein YAML.

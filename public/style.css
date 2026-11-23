@@ -79,6 +79,11 @@ h3 { margin: 0; font-size: 1rem; }
 }
 
 .brand { display: flex; align-items: center; gap: 0.55rem; font-weight: 700; font-size: 1.1rem; }
+.appbar-actions { display: flex; align-items: center; gap: 8px; }
+.icon-button { display: grid; place-items: center; width: 36px; height: 36px; border-radius: 50%; color: var(--muted); }
+.icon-button:hover { background: var(--surface-2); }
+.icon-button svg { width: 22px; height: 22px; }
+.icon-button[hidden] { display: none; }
 .brand-icon { width: 26px; height: 26px; fill: var(--accent); }
 
 .status-pill {
