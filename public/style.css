@@ -398,6 +398,11 @@ fieldset input:not([type=file]), fieldset select { background: var(--surface); }
 .hint { color: var(--muted); font-size: 0.88rem; margin: 0 0 12px; }
 fieldset .hint { margin: 0; }
 
+.app-setup { display: grid; gap: 10px; margin-bottom: 14px; padding: 16px; border-radius: 16px; background: var(--accent-soft); }
+.app-setup[hidden] { display: none; }
+.app-setup p { margin: 0; }
+a.button.primary { display: block; text-align: center; text-decoration: none; background: var(--accent); color: var(--on-accent); border-color: var(--accent); }
+
 #qr-video { width: 100%; max-width: 420px; border-radius: 14px; background: #000; }
 #setup-steps { margin: 0; padding-left: 1.4rem; font-size: 0.9rem; }
 #setup-steps:empty { display: none; }

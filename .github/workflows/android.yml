@@ -36,13 +36,13 @@ jobs:
             echo "::warning::Kein Signaturschlüssel hinterlegt, die APK wird mit dem Debug-Schlüssel signiert"
           fi
 
-      - name: APK bauen
+      - name: Tests und APK bauen
         working-directory: android
         env:
           SIGNING_STORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           SIGNING_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           SIGNING_KEY_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: gradle assembleRelease --no-daemon --stacktrace
+        run: gradle testReleaseUnitTest assembleRelease --no-daemon --stacktrace
 
       - name: APK benennen
         run: |

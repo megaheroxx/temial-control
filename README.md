@@ -77,7 +77,9 @@ Einmalig pro Gerät, direkt im Dashboard unter **„Neue Temial einrichten“**:
 5. **„Einrichten“** klicken. Die App verbindet sich mit der Temial, prüft die Seriennummer, sucht WLANs und überträgt die Einstellungen. Den Fortschritt zeigt sie Schritt für Schritt an.
 6. Zurück ins normale WLAN wechseln. Die Temial meldet sich kurz darauf im Dashboard.
 
-**Wichtig:** Während der Einrichtung muss der Rechner, **auf dem die App läuft**, im WLAN der Temial sein. Nur dort ist das Gerät unter `192.168.1.1:4478` erreichbar. Läuft die App per Docker auf einem NAS oder Server am Kabel, richte die Temial einmal von einem Laptop aus ein (`npm start` oder Docker Desktop) und trage als Server-Adresse die des NAS ein. Danach verbindet sich die Temial direkt mit dem NAS.
+**Mit der Android-App geht es einfacher:** Dort richtet das Handy die Temial selbst ein (Abschnitt „Neue Temial einrichten“ → „Mit diesem Handy einrichten“ oder ⚙️ → „Neue Temial einrichten“). Der folgende Hinweis gilt nur für die Einrichtung über den Server.
+
+**Wichtig:** Während der Einrichtung über den Server muss der Rechner, **auf dem die App läuft**, im WLAN der Temial sein. Nur dort ist das Gerät unter `192.168.1.1:4478` erreichbar. Läuft die App per Docker auf einem NAS oder Server am Kabel, richte die Temial einmal von einem Laptop aus ein (`npm start` oder Docker Desktop) und trage als Server-Adresse die des NAS ein. Danach verbindet sich die Temial direkt mit dem NAS.
 
 Weitere Einschränkungen: WLAN-Name und Passwort dürfen keine Umlaute enthalten, weil das Freemial-Protokoll nur ASCII korrekt überträgt. Für versteckte WLANs den Sicherheitstyp von Hand wählen.
 
@@ -120,6 +122,7 @@ Unter [android/](android/) liegt eine native Android-App (ab Android 8):
 - **Benachrichtigungen**, auch bei geschlossener App: „Dein Tee ist fertig“, „Frischwasser auffüllen“, „Abwassertank leeren“
 - Fortschritt mit Restzeit in der Benachrichtigungsleiste, während die Temial brüht
 - startet die Benachrichtigungen nach einem Neustart des Handys von selbst
+- **richtet neue Temials direkt vom Handy ein:** QR-Code mit der Kamera scannen, Handy verbindet sich selbst mit dem WLAN der Temial (oder du verbindest dich von Hand) und überträgt Heim-WLAN und Server-Adresse. Dafür braucht es keinen Laptop, und der Server darf per Docker auf dem NAS laufen.
 
 Die APK baut GitHub Actions bei jedem Release und hängt sie dort an (`temial-control-<version>.apk`). Installieren: APK aufs Handy laden, öffnen und die Installation aus dieser Quelle erlauben. Beim ersten Start fragt die App nach der Server-Adresse, z. B. `http://192.168.1.40:3010`, und optional nach dem `APP_TOKEN`.
 

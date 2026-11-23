@@ -126,6 +126,8 @@ class MainActivity : Activity() {
             when {
                 uri.scheme == "app" && uri.host == "settings" ->
                     startActivity(Intent(this@MainActivity, SettingsActivity::class.java))
+                uri.scheme == "app" && uri.host == "setup" ->
+                    startActivity(Intent(this@MainActivity, SetupActivity::class.java))
                 uri.scheme == "app" && uri.host == "retry" -> view.loadUrl(settings.url)
                 uri.toString().startsWith(settings.url) -> return false
                 // External links (e.g. the Freemial website) open in the browser.

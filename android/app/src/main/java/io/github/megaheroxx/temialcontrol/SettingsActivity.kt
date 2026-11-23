@@ -77,6 +77,18 @@ class SettingsActivity : Activity() {
         status = text("", 14f, muted = true).apply { gravity = Gravity.CENTER }
         content.addView(status, margins(top = 16))
 
+        content.addView(Button(this).apply {
+            text = "Neue Temial einrichten"
+            isAllCaps = false
+            textSize = 16f
+            setTextColor(getColor(R.color.accent))
+            background = GradientDrawable().apply {
+                cornerRadius = dp(28).toFloat()
+                setStroke(dp(2), getColor(R.color.accent))
+            }
+            setOnClickListener { startActivity(android.content.Intent(this@SettingsActivity, SetupActivity::class.java)) }
+        }, LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, dp(52)).apply { topMargin = dp(24) })
+
         val scroll = ScrollView(this).apply {
             setBackgroundColor(getColor(R.color.background))
             addView(content)

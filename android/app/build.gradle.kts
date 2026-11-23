@@ -51,3 +51,9 @@ android {
         jvmTarget = "17"
     }
 }
+
+dependencies {
+    // QR scanner UI from Google Play services: no camera permission needed, the scanner runs in its own module.
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    testImplementation("junit:junit:4.13.2")
+}

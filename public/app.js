@@ -316,7 +316,10 @@ function connectEvents() {
 
 async function init() {
   // Inside the Android app the native settings screen is reachable from the app bar.
-  if (navigator.userAgent.includes('TemialControlApp/')) $('#app-settings').hidden = false
+  if (navigator.userAgent.includes('TemialControlApp/')) {
+    $('#app-settings').hidden = false
+    $('#app-setup').hidden = false
+  }
   try {
     // Also triggers the token prompt before the event stream opens.
     const { limits } = await api('/api/config')
