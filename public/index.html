@@ -3,40 +3,72 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121312" media="(prefers-color-scheme: dark)">
   <title>Temial Control</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <header>
-    <h1>Temial Control</h1>
-    <span id="connection" class="pill">verbinde …</span>
+  <header class="appbar">
+    <div class="brand">
+      <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-7 0-13 3.5-13 10 0 1.6.5 3 1.3 4.1C6.4 19.6 5 21 5 21l1 1s1.6-1.5 3.3-3.3A6 6 0 0 0 11 19c6.5 0 9-6 9-15Zm-9 13c-.6 0-1.1-.1-1.6-.3C11.6 14.4 14 12 16 10c-2.6 1.2-5.5 3.6-7.6 6.2A5.6 5.6 0 0 1 9 14c0-4.7 4.1-7.4 9-7.9-.4 6.4-2.6 10.9-7 10.9Z"/></svg>
+      <span>Temial Control</span>
+    </div>
+    <span id="connection" class="status-pill">verbinde …</span>
   </header>
 
   <main>
     <section id="devices" aria-live="polite">
-      <p class="empty">Noch keine Temial verbunden. Richte sie unten unter <a href="#setup">„Neue Temial einrichten“</a> ein.</p>
+      <div class="card empty">
+        <div class="empty-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M4 8h13v5a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V8Zm13 1h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2.5c0 1 1 1 1 2s-1 1-1 2M12 2.5c0 1 1 1 1 2s-1 1-1 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+        </div>
+        <h2>Noch keine Temial verbunden</h2>
+        <p>Richte deine Temial unter <a href="#setup">„Neue Temial einrichten“</a> ein. Danach erscheint sie hier.</p>
+      </div>
     </section>
 
-    <section class="card">
-      <h2>Tee brühen</h2>
+    <section class="card" id="brew">
+      <div class="section-head">
+        <h2>Tee brühen</h2>
+        <label class="device-picker">
+          <span class="visually-hidden">Gerät</span>
+          <select name="device" form="brew-form" required></select>
+        </label>
+      </div>
+
+      <div class="tea-tiles" id="tea-tiles" role="listbox" aria-label="Presets"></div>
+
       <form id="brew-form">
-        <label>Gerät
-          <select name="device" required></select>
+        <select name="preset" hidden><option value="">eigenes Rezept</option></select>
+        <label class="field">
+          <span>Name</span>
+          <input name="name" required maxlength="40" value="Mein Tee">
         </label>
-        <label>Preset
-          <select name="preset"><option value="">– eigenes Rezept –</option></select>
-        </label>
-        <label>Name <input name="name" required maxlength="40" value="Mein Tee"></label>
-        <div class="grid">
-          <label>Temperatur (°C) <input name="temperature" type="number" required value="90"></label>
-          <label>Ziehzeit (s) <input name="duration" type="number" required value="180"></label>
-          <label>Menge (ml) <input name="volume" type="number" required value="350"></label>
-          <label>Vorspülen (s) <input name="preWashTime" type="number" required value="10"></label>
+
+        <div class="sliders">
+          <label class="slider">
+            <span>Temperatur</span><output data-for="temperature"></output>
+            <input name="temperature" type="range" min="40" max="100" step="1" value="90" required>
+          </label>
+          <label class="slider">
+            <span>Ziehzeit</span><output data-for="duration"></output>
+            <input name="duration" type="range" min="10" max="1800" step="1" value="180" required>
+          </label>
+          <label class="slider">
+            <span>Menge</span><output data-for="volume"></output>
+            <input name="volume" type="range" min="50" max="1000" step="1" value="350" required>
+          </label>
+          <label class="slider">
+            <span>Vorspülen</span><output data-for="preWashTime"></output>
+            <input name="preWashTime" type="range" min="0" max="60" step="1" value="10" required>
+          </label>
         </div>
-        <div class="actions">
-          <button type="submit">Brühen</button>
-          <button type="button" id="save-preset" class="secondary">Als Preset speichern</button>
-          <button type="button" id="delete-preset" class="secondary danger" hidden>Preset löschen</button>
+
+        <button type="submit" class="primary wide">Jetzt brühen</button>
+        <div class="actions center">
+          <button type="button" id="save-preset" class="link">Als Preset speichern</button>
+          <button type="button" id="delete-preset" class="link danger" hidden>Preset löschen</button>
         </div>
         <p id="form-message" role="status"></p>
       </form>
@@ -49,9 +81,10 @@
 
         <form id="setup-form">
           <fieldset>
-            <legend>1. QR-Code der Temial</legend>
+            <legend><span class="step">1</span> QR-Code der Temial</legend>
             <p class="hint">Auf der Temial oben auf die graue Leiste tippen und „Verbinden“ wählen.</p>
-            <label>Inhalt des QR-Codes
+            <label class="field">
+              <span>Inhalt des QR-Codes</span>
               <input name="qr" required autocomplete="off" spellcheck="false" placeholder="z. B. 1:2104118837:0:DE:…">
             </label>
             <div class="actions">
@@ -65,18 +98,22 @@
           </fieldset>
 
           <fieldset>
-            <legend>2. WLAN und Server</legend>
-            <label>WLAN-Name
+            <legend><span class="step">2</span> WLAN und Server</legend>
+            <label class="field">
+              <span>WLAN-Name</span>
               <input name="ssid" list="ssid-list" required maxlength="32" autocomplete="off">
               <datalist id="ssid-list"></datalist>
             </label>
-            <label>WLAN-Passwort
+            <label class="field">
+              <span>WLAN-Passwort</span>
               <input name="key" type="password" maxlength="63" autocomplete="off">
             </label>
-            <label>Sicherheitstyp
+            <label class="field">
+              <span>Sicherheitstyp</span>
               <select name="securityType"><option value="">automatisch (wie von der Temial erkannt)</option></select>
             </label>
-            <label>Server-Adresse für die Temial (baseHost)
+            <label class="field">
+              <span>Server-Adresse für die Temial (baseHost)</span>
               <input name="baseHost" list="basehost-list" required maxlength="64" placeholder="http://192.168.178.20:3000">
               <datalist id="basehost-list"></datalist>
             </label>
@@ -84,10 +121,10 @@
           </fieldset>
 
           <fieldset>
-            <legend>3. Einrichten</legend>
+            <legend><span class="step">3</span> Einrichten</legend>
             <p>Jetzt diesen Rechner mit dem WLAN <strong id="hotspot">Temial-xxxxx</strong> verbinden. Diese Seite bleibt dabei offen.</p>
             <div class="actions">
-              <button type="submit" id="setup-submit">Einrichten</button>
+              <button type="submit" id="setup-submit" class="primary">Einrichten</button>
               <button type="button" id="setup-scan" class="secondary">Nur WLANs der Temial anzeigen</button>
             </div>
           </fieldset>
@@ -99,22 +136,50 @@
     </section>
 
     <section class="card">
-      <h2>Ereignisse</h2>
-      <ol id="log"></ol>
+      <details>
+        <summary><h2>Ereignisse</h2></summary>
+        <ol id="log"></ol>
+      </details>
     </section>
   </main>
+
+  <footer>
+    Temial Control ist ein unabhängiges Community-Projekt auf Basis von <a href="https://freemial.github.io/">Freemial</a> und nicht mit Vorwerk verbunden. Temial ist eine Marke der Vorwerk SE &amp; Co. KG.
+  </footer>
 
   <template id="device-template">
     <article class="card device">
       <div class="device-head">
-        <h2 class="serial"></h2>
-        <span class="pill state"></span>
+        <div>
+          <h2 class="device-name"></h2>
+          <p class="device-sub"></p>
+        </div>
+        <span class="status-pill state"></span>
       </div>
-      <ul class="checks"></ul>
-      <div class="brew" hidden>
-        <h3>Brühvorgang</h3>
-        <div class="progress"><div class="bar"></div></div>
-        <dl class="brew-stats"></dl>
+
+      <div class="device-body">
+        <div class="bezel" aria-hidden="true">
+          <div class="screen">
+            <div class="screen-ring" hidden>
+              <svg viewBox="0 0 120 120">
+                <circle class="ring-track" cx="60" cy="60" r="52"/>
+                <circle class="ring-value" cx="60" cy="60" r="52"/>
+              </svg>
+              <div class="ring-label">
+                <strong class="ring-time"></strong>
+                <span class="ring-caption">verbleibend</span>
+              </div>
+            </div>
+            <div class="screen-icon"></div>
+            <p class="screen-title"></p>
+            <p class="screen-text"></p>
+          </div>
+        </div>
+
+        <div class="device-info">
+          <dl class="brew-stats" hidden></dl>
+          <ul class="checks"></ul>
+        </div>
       </div>
       <p class="meta"></p>
     </article>
