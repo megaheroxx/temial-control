@@ -26,10 +26,15 @@ def brew_payloads(aioclient_mock: AiohttpClientMocker) -> list[dict]:
     return [data for method, url, data, _ in aioclient_mock.mock_calls if method == "POST" and str(url) == BREW_URL]
 
 
-def device_id(hass: HomeAssistant) -> str:
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, SERIAL)})
+def temial_device(hass: HomeAssistant) -> dr.DeviceEntry:
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    device = dr.async_get(hass).async_get_device_by_identifier((DOMAIN, SERIAL), entry.entry_id)
     assert device is not None
-    return device.id
+    return device
+
+
+def device_id(hass: HomeAssistant) -> str:
+    return temial_device(hass).id
 
 
 async def test_entities_reflect_device_state(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
@@ -49,7 +54,7 @@ async def test_entities_reflect_device_state(hass: HomeAssistant, aioclient_mock
     assert hass.states.get(f"button.{PREFIX}_brew_sencha") is not None
     assert hass.states.get(f"button.{PREFIX}_brew_assam") is not None
 
-    device = dr.async_get(hass).async_get_device(identifiers={(DOMAIN, SERIAL)})
+    device = temial_device(hass)
     assert device.manufacturer == "Vorwerk"
     assert device.sw_version == "6.5.2"
 

@@ -65,7 +65,9 @@ def _resolve_device(hass: HomeAssistant, device_id: str) -> tuple[TemialCoordina
     serial = next((ident for domain, ident in device.identifiers if domain == DOMAIN), None) if device else None
     if device is None or serial is None:
         raise ServiceValidationError(f"Gerät {device_id} ist keine Temial")
-    for entry_id in device.config_entries:
+    # Since HA 2026.10 a device belongs to exactly one entry; config_entries is deprecated.
+    entry_ids = [device.config_entry_id] if hasattr(device, "config_entry_id") else device.config_entries
+    for entry_id in entry_ids:
         entry = hass.config_entries.async_get_entry(entry_id)
         if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
             return entry.runtime_data, serial
