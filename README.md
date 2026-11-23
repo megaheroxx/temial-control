@@ -116,10 +116,13 @@ curl -X POST http://localhost:3000/api/devices/123456789/brew \
 
 Unter [custom_components/temial_control/](custom_components/temial_control/) liegt eine Integration für Home Assistant. Sie wird über die Oberfläche eingerichtet und braucht kein YAML.
 
-**Installation**
+**Installation über HACS (empfohlen)**
 
-- **Manuell:** Den Ordner `custom_components/temial_control` nach `/config/custom_components/temial_control` kopieren, z. B. mit dem File-Editor- oder Samba-Add-on. Danach Home Assistant neu starten.
-- **HACS:** HACS → Benutzerdefinierte Repositories → `https://github.com/megaheroxx/temial-control`, Typ „Integration“. HACS kann private Repositories in der Regel nicht laden. Das geht erst, wenn das Repo öffentlich ist.
+[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=megaheroxx&repository=temial-control&category=integration)
+
+Der Button öffnet HACS direkt in deinem Home Assistant. Alternativ von Hand: **HACS → ⋮ → Benutzerdefinierte Repositories → `https://github.com/megaheroxx/temial-control`, Typ „Integration“**. Danach „Temial Control“ herunterladen und Home Assistant neu starten. Über neue Versionen informiert HACS automatisch.
+
+**Manuell:** Den Ordner `custom_components/temial_control` nach `/config/custom_components/temial_control` kopieren, z. B. mit dem File-Editor- oder Samba-Add-on, dann Home Assistant neu starten.
 
 Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → „Temial Control“** die Adresse der App eingeben, z. B. `http://192.168.178.20:3000`, und falls gesetzt den `APP_TOKEN`.
 
