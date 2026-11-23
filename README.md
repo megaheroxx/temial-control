@@ -33,6 +33,15 @@ Beim Start gibt die App die Dashboard-URL und die `baseHost`-Adressen für die T
 
 ## Docker
 
+Fertige Images für `amd64` und `arm64` (NAS, Raspberry Pi) baut GitHub Actions bei jedem Push nach `main` und legt sie unter `ghcr.io/megaheroxx/temial-control` ab. Tags: `latest`, `sha-<commit>` und bei Git-Tags `v1.2.3` auch `1.2.3` und `1.2`. Weil das Package privat ist, ist vorher ein Login mit einem Personal Access Token (Scope `read:packages`) nötig:
+
+```bash
+docker login ghcr.io -u megaheroxx
+docker pull ghcr.io/megaheroxx/temial-control:latest
+```
+
+Selbst bauen:
+
 ```bash
 docker compose up -d --build
 ```
