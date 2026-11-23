@@ -1,7 +1,7 @@
 services:
   temial-control:
-    build: .
     image: ghcr.io/megaheroxx/temial-control:latest
+    pull_policy: always
     container_name: temial-control
     restart: unless-stopped
     ports:

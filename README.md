@@ -37,16 +37,12 @@ Fertige Images für `amd64` und `arm64` (NAS, Raspberry Pi) baut GitHub Actions 
 
 ```bash
 docker login ghcr.io -u megaheroxx
-docker pull ghcr.io/megaheroxx/temial-control:latest
+docker compose up -d
 ```
 
-Selbst bauen:
+Die [docker-compose.yml](docker-compose.yml) zieht nur das fertige Image und braucht keinen Quellcode. Sie passt deshalb direkt für Portainer, Dockhand und ähnliche Tools: Registry `ghcr.io` mit Benutzer und Token anlegen, Compose-Datei als Stack einfügen.
 
-```bash
-docker compose up -d --build
-```
-
-Oder ohne Compose:
+Lokal selbst bauen:
 
 ```bash
 docker build -t temial-control .
