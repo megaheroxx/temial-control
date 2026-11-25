@@ -123,6 +123,18 @@ async def test_brew_preset_action(hass: HomeAssistant, aioclient_mock: AiohttpCl
         )
 
 
+async def test_brew_preset_with_timer(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
+    await setup_integration(hass, aioclient_mock)
+    aioclient_mock.post(BREW_URL, status=202, json={"sent": True})
+
+    await hass.services.async_call(
+        DOMAIN, "brew_preset", {"device_id": device_id(hass), "preset": "Assam", "start_in_minutes": 30}, blocking=True
+    )
+    assert brew_payloads(aioclient_mock) == [
+        {"name": "Assam", "temperature": 95, "duration": 240, "volume": 400, "preWashTime": 10, "startInSeconds": 1800}
+    ]
+
+
 async def test_brew_on_disconnected_device(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
     await setup_integration(hass, aioclient_mock)
     aioclient_mock.post(BREW_URL, status=409, json={"error": "Gerät ist nicht verbunden"})

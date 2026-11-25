@@ -33,26 +33,58 @@
   },
   "entity": {
     "sensor": {
-      "remaining_time": { "name": "Restzeit" },
-      "temperature": { "name": "Brühtemperatur" },
-      "pumped_volume": { "name": "Gepumpte Menge" },
-      "last_tea": { "name": "Letzter Tee" },
-      "brew_phase": { "name": "Brühphase" },
-      "wifi_signal": { "name": "WLAN-Signal" },
-      "firmware": { "name": "Firmware" },
-      "water_hardness": { "name": "Wasserhärte" }
+      "remaining_time": {
+        "name": "Restzeit"
+      },
+      "temperature": {
+        "name": "Brühtemperatur"
+      },
+      "pumped_volume": {
+        "name": "Gepumpte Menge"
+      },
+      "last_tea": {
+        "name": "Letzter Tee"
+      },
+      "brew_phase": {
+        "name": "Brühphase"
+      },
+      "wifi_signal": {
+        "name": "WLAN-Signal"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "water_hardness": {
+        "name": "Wasserhärte"
+      }
     },
     "binary_sensor": {
-      "connected": { "name": "Verbunden" },
-      "brewing": { "name": "Brüht" },
-      "lid_closed": { "name": "Deckel geschlossen" },
-      "chamber_present": { "name": "Brühkammer eingesetzt" },
-      "fresh_water_missing": { "name": "Frischwasser fehlt" },
-      "waste_tank_full": { "name": "Abwassertank voll" },
-      "waste_tank_missing": { "name": "Abwassertank fehlt" }
+      "connected": {
+        "name": "Verbunden"
+      },
+      "brewing": {
+        "name": "Brüht"
+      },
+      "lid_closed": {
+        "name": "Deckel geschlossen"
+      },
+      "chamber_present": {
+        "name": "Brühkammer eingesetzt"
+      },
+      "fresh_water_missing": {
+        "name": "Frischwasser fehlt"
+      },
+      "waste_tank_full": {
+        "name": "Abwassertank voll"
+      },
+      "waste_tank_missing": {
+        "name": "Abwassertank fehlt"
+      }
     },
     "button": {
-      "brew_preset": { "name": "{preset} brühen" }
+      "brew_preset": {
+        "name": "{preset} brühen"
+      }
     }
   },
   "services": {
@@ -60,20 +92,52 @@
       "name": "Tee brühen",
       "description": "Brüht einen Tee mit frei gewählten Werten.",
       "fields": {
-        "device_id": { "name": "Temial", "description": "Die Temial, die brühen soll." },
-        "name": { "name": "Name", "description": "Name des Tees, wird im Dashboard angezeigt." },
-        "temperature": { "name": "Temperatur", "description": "Brühtemperatur in °C." },
-        "duration": { "name": "Ziehzeit", "description": "Ziehzeit in Sekunden." },
-        "volume": { "name": "Menge", "description": "Wassermenge in Millilitern." },
-        "pre_wash_time": { "name": "Vorspülen", "description": "Vorspülzeit in Sekunden." }
+        "device_id": {
+          "name": "Temial",
+          "description": "Die Temial, die brühen soll."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name des Tees, wird im Dashboard angezeigt."
+        },
+        "temperature": {
+          "name": "Temperatur",
+          "description": "Brühtemperatur in °C."
+        },
+        "duration": {
+          "name": "Ziehzeit",
+          "description": "Ziehzeit in Sekunden."
+        },
+        "volume": {
+          "name": "Menge",
+          "description": "Wassermenge in Millilitern."
+        },
+        "pre_wash_time": {
+          "name": "Vorspülen",
+          "description": "Vorspülzeit in Sekunden."
+        },
+        "start_in_minutes": {
+          "name": "Start in Minuten",
+          "description": "Leer oder 0 = sofort. Sonst wartet die Temial so viele Minuten, bevor sie brüht."
+        }
       }
     },
     "brew_preset": {
       "name": "Preset brühen",
       "description": "Brüht ein in der App gespeichertes Preset.",
       "fields": {
-        "device_id": { "name": "Temial", "description": "Die Temial, die brühen soll." },
-        "preset": { "name": "Preset", "description": "Name des Presets, z. B. „Grüner Tee“." }
+        "device_id": {
+          "name": "Temial",
+          "description": "Die Temial, die brühen soll."
+        },
+        "preset": {
+          "name": "Preset",
+          "description": "Name des Presets, z. B. „Grüner Tee“."
+        },
+        "start_in_minutes": {
+          "name": "Start in Minuten",
+          "description": "Leer oder 0 = sofort. Sonst wartet die Temial so viele Minuten, bevor sie brüht."
+        }
       }
     }
   }

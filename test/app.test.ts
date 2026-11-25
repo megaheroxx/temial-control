@@ -231,6 +231,46 @@ test('brews from the app and from the device end up in the history', async () =>
   assert.equal(stats.days.length, 7)
 })
 
+test('brews can be scheduled with a timer', async () => {
+  const brewWithTimer = (startInSeconds: unknown) =>
+    fetch(`${base}/api/devices/${SERIAL}/brew`, { method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, name: 'Morgentee', startInSeconds }) })
+
+  assert.equal((await brewWithTimer(-5)).status, 400)
+  assert.equal((await brewWithTimer(90_000)).status, 400)
+
+  let received = nextMessage(device)
+  const before = Date.now()
+  assert.equal((await brewWithTimer(1800)).status, 202)
+  const message = await received
+  assert.equal(message.content.startInSeconds, 1800)
+  const scheduled = app.hub.get(SERIAL)?.scheduled
+  assert.equal(scheduled?.name, 'Morgentee')
+  assert.ok(scheduled!.startsAt >= before + 1_800_000 && scheduled!.startsAt <= Date.now() + 1_800_000)
+  const entry = app.history.list(1)[0]
+  assert.equal(entry.name, 'Morgentee')
+  assert.ok(entry.time >= before + 1_800_000, 'history uses the planned start time')
+
+  // Cancelling clears the plan and the history entry.
+  received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/control`, { method: 'POST', headers: auth, body: JSON.stringify({ action: 'cancel' }) })
+  await received
+  assert.equal(app.hub.get(SERIAL)?.scheduled, null)
+  assert.equal(app.history.list(1)[0].status, 'cancelled')
+
+  // When the device starts brewing, the plan is done and no extra "started at the Temial" entry appears.
+  received = nextMessage(device); await brewWithTimer(600); await received
+  const count = app.history.list(500).length
+  sendFromDevice('brewStatus', { remainingTotalTime: 150, temperature: 80 })
+  await waitFor(() => app.hub.get(SERIAL)?.scheduled === null)
+  assert.equal(app.history.list(500).length, count)
+
+  // Without a timer the device gets the usual 10 seconds.
+  received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/brew`, { method: 'POST', headers: auth, body: JSON.stringify(recipe) })
+  assert.equal((await received).content.startInSeconds, 10)
+  assert.equal(app.hub.get(SERIAL)?.scheduled, null)
+})
+
 test('preset colour can be set and reset', async () => {
   const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
   const patch = (id: string, body: unknown) =>

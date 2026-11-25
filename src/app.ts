@@ -7,7 +7,7 @@ import { DeviceHub, type BrewStart, type DeviceState, type LogEntry } from './de
 import { HistoryStore } from './history.ts'
 import { baseHostCandidates } from './network.ts'
 import { PresetStore } from './presets.ts'
-import { BREW_ACTIONS, type BrewAction } from './protocol.ts'
+import { BREW_ACTIONS, DEFAULT_START_DELAY, MAX_START_DELAY, type BrewAction } from './protocol.ts'
 import { DeviceSetup, SECURITY_TYPES, SetupError, validateConfigure, type SetupTarget } from './setup.ts'
 import { LIMITS, validateRecipe } from './validation.ts'
 
@@ -51,7 +51,7 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
   await presets.load()
   const history = new HistoryStore(dataDir)
   await history.load()
-  hub.on('brewStarted', ({ serialNumber, ...brew }: BrewStart) => history.start({ serialNumber, ...brew }))
+  hub.on('brewStarted', ({ serialNumber, startsAt, ...brew }: BrewStart) => history.start({ serialNumber, ...brew }, startsAt))
   hub.on('brewEnded', (serialNumber: string, status: 'done' | 'cancelled') => history.finish(serialNumber, status))
   const setup = new DeviceSetup((serialNumber, step) => hub.record(serialNumber, 'setup', step), setupTarget)
 
@@ -102,10 +102,17 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         return sendJson(res, 200, hub.list())
 
       case 'POST /devices/:id/brew': {
-        const result = validateRecipe(await readJson(req))
+        const body = await readJson(req)
+        const result = validateRecipe(body)
         if (!result.ok) return sendJson(res, 400, { error: result.errors.join(', ') })
+        // Optional timer: seconds until the device should start brewing.
+        const { startInSeconds = DEFAULT_START_DELAY } = (body ?? {}) as { startInSeconds?: unknown }
+        if (typeof startInSeconds !== 'number' || !Number.isInteger(startInSeconds)
+          || startInSeconds < 0 || startInSeconds > MAX_START_DELAY) {
+          throw new HttpError(400, `startInSeconds muss zwischen 0 und ${MAX_START_DELAY} liegen`)
+        }
         if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
-        if (!hub.brew(segments[1], result.recipe)) throw new HttpError(409, 'Gerät ist nicht verbunden')
+        if (!hub.brew(segments[1], result.recipe, startInSeconds)) throw new HttpError(409, 'Gerät ist nicht verbunden')
         return sendJson(res, 202, { sent: true })
       }
 

@@ -583,3 +583,17 @@ button.link.accent { color: var(--accent-strong); }
 @media (max-width: 560px) {
   .stat-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* --- Timer ----------------------------------------------------------------- */
+
+.start-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; background: var(--surface-2); border-radius: 14px; }
+.start-row > span { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
+.start-row .segment { min-width: 72px; }
+.start-later { display: grid; gap: 6px; }
+.start-later[hidden] { display: none; }
+.start-later .hint { margin: 0; }
+.start-later input[type=time] { font-size: 1.2rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+.scheduled-box { display: grid; gap: 10px; padding: 14px; border-radius: 14px; background: var(--accent-soft); }
+.scheduled-box[hidden] { display: none; }
+.scheduled-box p { margin: 0; font-weight: 600; }

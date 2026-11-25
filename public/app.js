@@ -18,6 +18,7 @@ const message = $('#form-message')
 const ICONS = {
   cup: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h13v4a6 6 0 0 1-6 6h-1a6 6 0 0 1-6-6V9Z"/><path d="M17 10h1.5a2.5 2.5 0 0 1 0 5H17"/><path d="M8 3.5c0 1 1 1 1 2s-1 1-1 2M12 3.5c0 1 1 1 1 2s-1 1-1 2"/></svg>',
   alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5v.01"/></svg>',
+  clock: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>',
   offline: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M3 9a14 14 0 0 1 18 0M6 12.5a9 9 0 0 1 12 0M9 16a4 4 0 0 1 6 0"/><path d="M12 19.5v.01M4 4l16 16"/></svg>',
 }
 
@@ -33,6 +34,13 @@ const PROBLEMS = [
 // --- Formatting -------------------------------------------------------------
 
 const formatTime = (ms) => new Date(ms).toLocaleTimeString('de-DE')
+const formatClock = (ms) => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+
+/** "1 h 05 min" or "12 min". */
+function formatCountdown(ms) {
+  const minutes = Math.max(1, Math.round(ms / 60000))
+  return minutes >= 60 ? `${Math.floor(minutes / 60)} h ${String(minutes % 60).padStart(2, '0')} min` : `${minutes} min`
+}
 
 // The device reports values like 72.19999 °C.
 const formatTemperature = (value) => `${Math.round(Number(value))} °C`
@@ -98,6 +106,10 @@ function renderScreen(card, state) {
 
   const problem = status && PROBLEMS.find(([check]) => check(status))
   if (problem) return set('problem', 'alert', problem[1], 'Danach kann gebrüht werden.')
+  if (state.scheduled && state.scheduled.startsAt > Date.now()) {
+    return set('ready', 'clock', `Geplant: ${formatClock(state.scheduled.startsAt)}`,
+      `${state.scheduled.name} · in ${formatCountdown(state.scheduled.startsAt - Date.now())}`)
+  }
   if (state.session) {
     const { index, total } = state.session
     return set('ready', 'cup', `Aufguss ${index + 1} von ${total} fertig`, index + 1 < total ? 'Nächster Aufguss bereit' : 'Genieße deinen Tee!')
@@ -157,6 +169,15 @@ function renderDevice(state) {
       row.append(el('dt', {}, label), el('dd', {}, value))
       return row
     }))
+  }
+
+  if (state.connected && state.scheduled && state.scheduled.startsAt > Date.now() && !isBrewing(state)) {
+    const box = $('.scheduled-box', card)
+    box.hidden = false
+    $('.scheduled-text', box).textContent = `${state.scheduled.name} startet um ${formatClock(state.scheduled.startsAt)}.`
+    $('.cancel-timer', box).addEventListener('click', () => {
+      if (confirm('Geplanten Tee wirklich abbrechen?')) controlBrew(state.serialNumber, 'cancel')
+    })
   }
 
   if (state.connected && state.session && !isBrewing(state)) {
@@ -472,15 +493,66 @@ form.elements.preset.addEventListener('change', () => {
   updateDirty()
 })
 
+// --- Timer ------------------------------------------------------------------
+
+let startLater = false
+
+/** Next occurrence of the chosen clock time (today or tomorrow), or null. */
+function plannedStart() {
+  const [hours, minutes] = ($('#start-time').value || '').split(':').map(Number)
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null
+  const start = new Date()
+  start.setHours(hours, minutes, 0, 0)
+  if (start.getTime() <= Date.now() + 60_000) start.setDate(start.getDate() + 1)
+  return start.getTime()
+}
+
+function updateStart() {
+  for (const button of document.querySelectorAll('[data-start]')) {
+    button.setAttribute('aria-checked', String((button.dataset.start === 'later') === startLater))
+  }
+  $('#start-later').hidden = !startLater
+  const start = startLater ? plannedStart() : null
+  const tomorrow = start && new Date(start).getDate() !== new Date().getDate()
+  $('#start-hint').textContent = start ? `${tomorrow ? 'Morgen' : 'Heute'} um ${formatClock(start)}, in ${formatCountdown(start - Date.now())}` : ''
+  form.querySelector('[type=submit]').textContent = start ? `Für ${formatClock(start)} planen` : 'Jetzt brühen'
+}
+
+for (const button of document.querySelectorAll('[data-start]')) {
+  button.addEventListener('click', () => {
+    startLater = button.dataset.start === 'later'
+    if (startLater && !$('#start-time').value) {
+      // Default: in 30 minutes, rounded up to 5 minutes.
+      const soon = new Date(Date.now() + 30 * 60_000)
+      soon.setMinutes(Math.ceil(soon.getMinutes() / 5) * 5, 0, 0)
+      $('#start-time').value = formatClock(soon.getTime())
+    }
+    updateStart()
+  })
+}
+$('#start-time').addEventListener('input', (event) => {
+  event.stopPropagation()
+  updateStart()
+})
+setInterval(updateStart, 30_000)
+
 form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const serial = form.elements.device.value
+  const start = startLater ? plannedStart() : null
+  if (startLater && !start) return showMessage('Bitte eine Uhrzeit wählen.', 'error')
   try {
+    const body = readRecipe()
+    if (start) body.startInSeconds = Math.round((start - Date.now()) / 1000)
     await api(`/api/devices/${encodeURIComponent(serial)}/brew`, {
       method: 'POST',
-      body: JSON.stringify(readRecipe()),
+      body: JSON.stringify(body),
     })
-    showMessage(`„${readRecipe().name}“ wird zubereitet.`, 'success')
+    showMessage(start ? `„${body.name}“ ist für ${formatClock(start)} geplant.` : `„${body.name}“ wird zubereitet.`, 'success')
+    if (start) {
+      startLater = false
+      updateStart()
+    }
   } catch (err) {
     showMessage(err.message, 'error')
   }

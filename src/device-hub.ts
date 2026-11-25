@@ -4,7 +4,7 @@ import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
 import {
   bindStatusMessage, brewTeaMessage, parseDeviceMessage, remoteTeaMessage,
-  type BindContent, type BrewAction, type InfusionStep, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
+  DEFAULT_START_DELAY, type BindContent, type BrewAction, type InfusionStep, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
 } from './protocol.ts'
 
 export type DeviceState = {
@@ -21,6 +21,8 @@ export type DeviceState = {
   paused: boolean
   /** Running multi-infusion brew: index of the current infusion (0-based) and total count. */
   session: (InfusionStep & { name: string }) | null
+  /** A brew planned for later (timer); cleared once the device starts brewing or it is cancelled. */
+  scheduled: { name: string, startsAt: number } | null
 }
 
 /** A brew that started; used for the history. */
@@ -32,6 +34,8 @@ export type BrewStart = {
   volume: number | null
   infusion?: string
   source: 'app' | 'device'
+  /** When brewing actually starts (later than now for a timer). */
+  startsAt: number
 }
 
 export type LogEntry = {
@@ -83,9 +87,9 @@ export class DeviceHub extends EventEmitter {
   }
 
   /** Sends a brew command (first infusion of the recipe). Returns false if the device is not connected. */
-  brew(serialNumber: string, recipe: BrewRecipe): boolean {
+  brew(serialNumber: string, recipe: BrewRecipe, startInSeconds = DEFAULT_START_DELAY): boolean {
     const total = 1 + (recipe.infusions?.length ?? 0)
-    if (!this.#sendBrew(serialNumber, recipe, { index: 0, total })) return false
+    if (!this.#sendBrew(serialNumber, recipe, { index: 0, total }, startInSeconds)) return false
     if (total > 1) this.#sessions.set(serialNumber, recipe)
     else this.#sessions.delete(serialNumber)
     return true
@@ -114,12 +118,14 @@ export class DeviceHub extends EventEmitter {
     return true
   }
 
-  #sendBrew(serialNumber: string, recipe: BrewRecipe, step: InfusionStep): boolean {
+  #sendBrew(serialNumber: string, recipe: BrewRecipe, step: InfusionStep, startInSeconds = DEFAULT_START_DELAY): boolean {
     const ws = this.#sockets.get(serialNumber)
     const state = this.#devices.get(serialNumber)
     if (!ws || !state?.connected) return false
 
-    ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe, step)))
+    ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe, step, startInSeconds)))
+    const startsAt = Date.now() + startInSeconds * 1000
+    state.scheduled = startInSeconds > DEFAULT_START_DELAY ? { name: recipe.name, startsAt } : null
     const { infusions: _infusions, ...single } = recipe
     state.lastBrew = { ...single, sentAt: Date.now() }
     state.paused = false
@@ -128,7 +134,7 @@ export class DeviceHub extends EventEmitter {
     this.record(serialNumber, 'brewCommand', infusion ? { ...single, infusion } : single)
     this.emit('brewStarted', {
       serialNumber, name: single.name, temperature: single.temperature, duration: single.duration,
-      volume: single.volume, infusion, source: 'app',
+      volume: single.volume, infusion, source: 'app', startsAt,
     } satisfies BrewStart)
     this.emit('device', state)
     return true
@@ -149,6 +155,7 @@ export class DeviceHub extends EventEmitter {
     state.paused = action === 'pause'
     if (action === 'cancel') {
       this.#endSession(state)
+      state.scheduled = null
       this.emit('brewEnded', serialNumber, 'cancelled')
     }
     this.record(serialNumber, 'brewControl', action)
@@ -239,7 +246,10 @@ export class DeviceHub extends EventEmitter {
         const brew = content as BrewStatus
         const wasBrewing = Boolean(state.brewStatus && state.brewStatus.remainingTotalTime > 0
           && Date.now() - (state.brewStatusAt ?? 0) < BREW_STALE_MS)
-        const fromCommand = state.lastBrew !== null && Date.now() - state.lastBrew.sentAt < COMMAND_MATCH_MS
+        // A timer brew starts long after the command, so it counts as ours while it is scheduled.
+        const fromCommand = state.scheduled !== null
+          || (state.lastBrew !== null && Date.now() - state.lastBrew.sentAt < COMMAND_MATCH_MS)
+        if (brew?.remainingTotalTime > 0) state.scheduled = null
         // A brew we did not start: someone pressed start at the Temial itself.
         if (!wasBrewing && !fromCommand && brew?.remainingTotalTime > 0) {
           this.emit('brewStarted', {
@@ -249,6 +259,7 @@ export class DeviceHub extends EventEmitter {
             duration: brew.estimatedTimeBrewing ?? null,
             volume: null,
             source: 'device',
+            startsAt: Date.now(),
           } satisfies BrewStart)
         }
         state.brewStatus = brew
@@ -287,6 +298,7 @@ export class DeviceHub extends EventEmitter {
         lastBrew: null,
         paused: false,
         session: null,
+        scheduled: null,
       }
       this.#devices.set(serialNumber, state)
     }

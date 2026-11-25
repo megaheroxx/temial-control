@@ -33,26 +33,58 @@
   },
   "entity": {
     "sensor": {
-      "remaining_time": { "name": "Remaining time" },
-      "temperature": { "name": "Brew temperature" },
-      "pumped_volume": { "name": "Pumped volume" },
-      "last_tea": { "name": "Last tea" },
-      "brew_phase": { "name": "Brew phase" },
-      "wifi_signal": { "name": "Wi-Fi signal" },
-      "firmware": { "name": "Firmware" },
-      "water_hardness": { "name": "Water hardness" }
+      "remaining_time": {
+        "name": "Remaining time"
+      },
+      "temperature": {
+        "name": "Brew temperature"
+      },
+      "pumped_volume": {
+        "name": "Pumped volume"
+      },
+      "last_tea": {
+        "name": "Last tea"
+      },
+      "brew_phase": {
+        "name": "Brew phase"
+      },
+      "wifi_signal": {
+        "name": "Wi-Fi signal"
+      },
+      "firmware": {
+        "name": "Firmware"
+      },
+      "water_hardness": {
+        "name": "Water hardness"
+      }
     },
     "binary_sensor": {
-      "connected": { "name": "Connected" },
-      "brewing": { "name": "Brewing" },
-      "lid_closed": { "name": "Lid closed" },
-      "chamber_present": { "name": "Brewing chamber inserted" },
-      "fresh_water_missing": { "name": "Fresh water missing" },
-      "waste_tank_full": { "name": "Waste water tank full" },
-      "waste_tank_missing": { "name": "Waste water tank missing" }
+      "connected": {
+        "name": "Connected"
+      },
+      "brewing": {
+        "name": "Brewing"
+      },
+      "lid_closed": {
+        "name": "Lid closed"
+      },
+      "chamber_present": {
+        "name": "Brewing chamber inserted"
+      },
+      "fresh_water_missing": {
+        "name": "Fresh water missing"
+      },
+      "waste_tank_full": {
+        "name": "Waste water tank full"
+      },
+      "waste_tank_missing": {
+        "name": "Waste water tank missing"
+      }
     },
     "button": {
-      "brew_preset": { "name": "Brew {preset}" }
+      "brew_preset": {
+        "name": "Brew {preset}"
+      }
     }
   },
   "services": {
@@ -60,20 +92,52 @@
       "name": "Brew tea",
       "description": "Brews a tea with custom settings.",
       "fields": {
-        "device_id": { "name": "Temial", "description": "The Temial that should brew." },
-        "name": { "name": "Name", "description": "Name of the tea, shown in the dashboard." },
-        "temperature": { "name": "Temperature", "description": "Brew temperature in °C." },
-        "duration": { "name": "Steeping time", "description": "Steeping time in seconds." },
-        "volume": { "name": "Volume", "description": "Amount of water in milliliters." },
-        "pre_wash_time": { "name": "Pre-wash", "description": "Pre-wash time in seconds." }
+        "device_id": {
+          "name": "Temial",
+          "description": "The Temial that should brew."
+        },
+        "name": {
+          "name": "Name",
+          "description": "Name of the tea, shown in the dashboard."
+        },
+        "temperature": {
+          "name": "Temperature",
+          "description": "Brew temperature in °C."
+        },
+        "duration": {
+          "name": "Steeping time",
+          "description": "Steeping time in seconds."
+        },
+        "volume": {
+          "name": "Volume",
+          "description": "Amount of water in milliliters."
+        },
+        "pre_wash_time": {
+          "name": "Pre-wash",
+          "description": "Pre-wash time in seconds."
+        },
+        "start_in_minutes": {
+          "name": "Start in minutes",
+          "description": "Empty or 0 = now. Otherwise the Temial waits this many minutes before brewing."
+        }
       }
     },
     "brew_preset": {
       "name": "Brew preset",
       "description": "Brews a preset stored in the app.",
       "fields": {
-        "device_id": { "name": "Temial", "description": "The Temial that should brew." },
-        "preset": { "name": "Preset", "description": "Name of the preset, e.g. \"Green tea\"." }
+        "device_id": {
+          "name": "Temial",
+          "description": "The Temial that should brew."
+        },
+        "preset": {
+          "name": "Preset",
+          "description": "Name of the preset, e.g. \"Green tea\"."
+        },
+        "start_in_minutes": {
+          "name": "Start in minutes",
+          "description": "Empty or 0 = now. Otherwise the Temial waits this many minutes before brewing."
+        }
       }
     }
   }

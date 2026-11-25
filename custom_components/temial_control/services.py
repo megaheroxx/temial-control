@@ -19,6 +19,7 @@ SERVICE_BREW = "brew"
 SERVICE_BREW_PRESET = "brew_preset"
 ATTR_DEVICE_ID = "device_id"
 ATTR_PRESET = "preset"
+ATTR_START_IN = "start_in_minutes"
 
 
 def _bounded(key: str) -> vol.All:
@@ -34,6 +35,7 @@ BREW_SCHEMA = vol.Schema(
         vol.Required("duration"): _bounded("duration"),
         vol.Required("volume"): _bounded("volume"),
         vol.Optional("pre_wash_time", default=0): _bounded("pre_wash_time"),
+        vol.Optional(ATTR_START_IN): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
     }
 )
 
@@ -41,6 +43,7 @@ BREW_PRESET_SCHEMA = vol.Schema(
     {
         vol.Required(ATTR_DEVICE_ID): cv.string,
         vol.Required(ATTR_PRESET): vol.All(cv.string, vol.Strip, vol.Length(min=1)),
+        vol.Optional(ATTR_START_IN): vol.All(vol.Coerce(int), vol.Range(min=0, max=1440)),
     }
 )
 
@@ -62,6 +65,13 @@ async def async_brew(coordinator: TemialCoordinator, serial_number: str, recipe:
         raise HomeAssistantError(f"Temial {serial_number} ist nicht verbunden") from err
     except TemialApiError as err:
         raise HomeAssistantError(f"Brühen fehlgeschlagen: {err}") from err
+
+
+def _with_timer(recipe: dict[str, Any], call: ServiceCall) -> dict[str, Any]:
+    """Adds the optional timer: the Temial waits this long before brewing."""
+    if minutes := call.data.get(ATTR_START_IN):
+        return {**recipe, "startInSeconds": minutes * 60}
+    return recipe
 
 
 def _resolve_device(hass: HomeAssistant, device_id: str) -> tuple[TemialCoordinator, str]:
@@ -91,7 +101,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
             "volume": call.data["volume"],
             "preWashTime": call.data["pre_wash_time"],
         }
-        await async_brew(coordinator, serial, recipe)
+        await async_brew(coordinator, serial, _with_timer(recipe, call))
 
     async def brew_preset(call: ServiceCall) -> None:
         coordinator, serial = _resolve_device(hass, call.data[ATTR_DEVICE_ID])
@@ -101,7 +111,7 @@ def async_setup_services(hass: HomeAssistant) -> None:
         if preset is None:
             names = ", ".join(p["name"] for p in presets) or "keine"
             raise ServiceValidationError(f"Preset „{call.data[ATTR_PRESET]}“ nicht gefunden. Vorhanden: {names}")
-        await async_brew(coordinator, serial, recipe_from_preset(preset))
+        await async_brew(coordinator, serial, _with_timer(recipe_from_preset(preset), call))
 
     hass.services.async_register(DOMAIN, SERVICE_BREW, brew, schema=BREW_SCHEMA)
     hass.services.async_register(DOMAIN, SERVICE_BREW_PRESET, brew_preset, schema=BREW_PRESET_SCHEMA)

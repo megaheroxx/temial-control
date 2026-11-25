@@ -40,6 +40,8 @@ class WatchService : Service() {
         val problem: String?,
         /** "Aufguss 1 von 3" while a multi-infusion brew is running, otherwise null. */
         val infusion: Pair<Int, Int>?,
+        /** Name and start time (epoch ms) of a brew planned with a timer. */
+        val scheduled: Pair<String, Long>?,
     )
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -218,6 +220,9 @@ class WatchService : Service() {
             total = total,
             problem = problem,
             infusion = device.optJSONObject("session")?.let { it.optInt("index") + 1 to it.optInt("total") },
+            scheduled = device.optJSONObject("scheduled")
+                ?.let { it.optString("name") to it.optLong("startsAt") }
+                ?.takeIf { it.second > System.currentTimeMillis() },
         )
     }
 
@@ -229,6 +234,10 @@ class WatchService : Service() {
                 "${brewing.tea} – noch ${formatDuration(brewing.remaining)}",
                 if (brewing.total > 0) brewing.total to (brewing.total - brewing.remaining).coerceAtLeast(0) else null,
             )
+            all.any { it.connected && it.scheduled != null } -> {
+                val (name, startsAt) = all.first { it.connected && it.scheduled != null }.scheduled!!
+                showStatus("$name um ${formatClock(startsAt)} geplant", null)
+            }
             all.any { it.connected && it.problem != null } ->
                 showStatus(all.first { it.connected && it.problem != null }.problem!!, null)
             all.any { it.connected } -> showStatus("Temial bereit", null)
@@ -283,6 +292,9 @@ class WatchService : Service() {
         private const val ID_TEA = 2
         private const val ID_PROBLEM = 3
         private const val BREW_STALE_MS = 60_000L
+
+        private fun formatClock(epochMs: Long): String =
+            java.text.SimpleDateFormat("HH:mm", java.util.Locale.GERMANY).format(java.util.Date(epochMs))
 
         private fun formatDuration(seconds: Int): String {
             val s = seconds.coerceAtLeast(0)

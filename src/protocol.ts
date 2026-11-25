@@ -71,6 +71,13 @@ export type BrewRecipe = {
 /** Position within a multi-infusion brew ("Aufguss index+1 von total"). */
 export type InfusionStep = { index: number, total: number }
 
+/**
+ * Delay before the device starts brewing. The original app sent 10 for "now" and the seconds
+ * until the chosen clock time for a timer; the device counts down itself.
+ */
+export const DEFAULT_START_DELAY = 10
+export const MAX_START_DELAY = 24 * 60 * 60
+
 export type DeviceMessage = {
   op: string
   serialNumber: string
@@ -146,7 +153,12 @@ export function remoteTeaMessage(deviceId: string, action: BrewAction | 'done') 
   return envelope(deviceId, 'remoteTea', { action, userId: 0 })
 }
 
-export function brewTeaMessage(deviceId: string, recipe: BrewRecipe, step: InfusionStep = { index: 0, total: 1 }) {
+export function brewTeaMessage(
+  deviceId: string,
+  recipe: BrewRecipe,
+  step: InfusionStep = { index: 0, total: 1 },
+  startInSeconds = DEFAULT_START_DELAY,
+) {
   // The device only knows the fields of a single infusion.
   const { infusions: _infusions, ...fields } = recipe
   return envelope(deviceId, 'brewTea', {
@@ -158,7 +170,7 @@ export function brewTeaMessage(deviceId: string, recipe: BrewRecipe, step: Infus
     increments: step.total,
     presetId: 0,
     qrCode: null,
-    startInSeconds: 10,
+    startInSeconds,
     teaId: -20,
     timerId: 0,
     uniqueId: 123,

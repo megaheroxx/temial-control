@@ -83,6 +83,21 @@
           <div id="infusion-steps"></div>
         </div>
 
+        <div class="start-row">
+          <span>Start</span>
+          <div class="segmented" role="radiogroup" aria-label="Startzeit">
+            <button type="button" class="segment" data-start="now" role="radio" aria-checked="true">Jetzt</button>
+            <button type="button" class="segment" data-start="later" role="radio" aria-checked="false">Später</button>
+          </div>
+        </div>
+        <div class="start-later" id="start-later" hidden>
+          <label class="field">
+            <span>Uhrzeit</span>
+            <input type="time" id="start-time" step="300">
+          </label>
+          <p class="hint" id="start-hint"></p>
+        </div>
+
         <button type="submit" class="primary wide">Jetzt brühen</button>
         <div class="actions center">
           <button type="button" id="update-preset" class="link accent" hidden>Änderungen speichern</button>
@@ -229,6 +244,10 @@
 
         <div class="device-info">
           <dl class="brew-stats" hidden></dl>
+          <div class="scheduled-box" hidden>
+            <p class="scheduled-text"></p>
+            <button type="button" class="secondary danger cancel-timer">Timer abbrechen</button>
+          </div>
           <div class="infusion-next" hidden>
             <p class="infusion-text"></p>
             <div class="infusion-buttons">

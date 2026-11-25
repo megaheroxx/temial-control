@@ -47,6 +47,13 @@ brew:
           max: 60
           unit_of_measurement: s
           mode: box
+    start_in_minutes:
+      selector:
+        number:
+          min: 0
+          max: 1440
+          unit_of_measurement: min
+          mode: box
 
 brew_preset:
   fields:
@@ -60,3 +67,10 @@ brew_preset:
       example: Grüner Tee
       selector:
         text:
+    start_in_minutes:
+      selector:
+        number:
+          min: 0
+          max: 1440
+          unit_of_measurement: min
+          mode: box
