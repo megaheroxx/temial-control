@@ -16,6 +16,7 @@ import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import android.widget.FrameLayout
 import org.json.JSONObject
 
 /** Shows the Temial Control dashboard of the configured server. */
@@ -42,7 +43,12 @@ class MainActivity : Activity() {
             webChromeClient = DashboardChromeClient()
         }
         // Since Android 15 apps draw edge to edge; keep the page clear of the system bars.
-        webView.setOnApplyWindowInsetsListener { view, insets ->
+        // The padding goes on a container: a WebView ignores its own padding when drawing the page.
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(getColor(R.color.surface))
+            addView(webView, FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT))
+        }
+        root.setOnApplyWindowInsetsListener { view, insets ->
             val bars = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 insets.getInsets(WindowInsets.Type.systemBars() or WindowInsets.Type.ime())
                     .let { intArrayOf(it.left, it.top, it.right, it.bottom) }
@@ -53,7 +59,7 @@ class MainActivity : Activity() {
             view.setPadding(bars[0], bars[1], bars[2], bars[3])
             insets
         }
-        setContentView(webView)
+        setContentView(root)
         requestNotificationPermission()
     }
 

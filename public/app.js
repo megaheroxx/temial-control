@@ -31,6 +31,9 @@ const PROBLEMS = [
 
 const formatTime = (ms) => new Date(ms).toLocaleTimeString('de-DE')
 
+// The device reports values like 72.19999 °C.
+const formatTemperature = (value) => `${Math.round(Number(value))} °C`
+
 function formatDuration(seconds) {
   const s = Math.max(0, Math.round(seconds))
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`
@@ -86,7 +89,7 @@ function renderScreen(card, state) {
     $('.screen-ring', card).hidden = false
     $('.ring-value', card).style.strokeDashoffset = String(RING_LENGTH * (1 - progress))
     $('.ring-time', card).textContent = formatDuration(brew.remainingTotalTime)
-    return set('brewing', null, state.lastBrew?.name ?? 'Tee', `${brew.temperature} °C`)
+    return set('brewing', null, state.lastBrew?.name ?? 'Tee', formatTemperature(brew.temperature))
   }
 
   const problem = status && PROBLEMS.find(([check]) => check(status))
@@ -124,8 +127,8 @@ function renderDevice(state) {
     const brew = state.brewStatus
     const stats = [
       ['Tee', state.lastBrew?.name ?? `#${brew.teaId}`],
-      ['Temperatur', `${brew.temperature} °C`],
-      ['Gepumpt', `${brew.pumpedVolume} ml`],
+      ['Temperatur', formatTemperature(brew.temperature)],
+      ['Gepumpt', `${Math.round(Number(brew.pumpedVolume))} ml`],
       ['Phase', String(brew.phase)],
     ]
     const list = $('.brew-stats', card)

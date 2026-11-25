@@ -46,6 +46,8 @@ SENSORS: tuple[TemialSensorDescription, ...] = (
         device_class=SensorDeviceClass.TEMPERATURE,
         state_class=SensorStateClass.MEASUREMENT,
         native_unit_of_measurement=UnitOfTemperature.CELSIUS,
+        # The device reports values like 72.19999 °C.
+        suggested_display_precision=0,
         value_fn=_while_brewing("temperature"),
     ),
     TemialSensorDescription(
@@ -53,6 +55,7 @@ SENSORS: tuple[TemialSensorDescription, ...] = (
         translation_key="pumped_volume",
         device_class=SensorDeviceClass.VOLUME,
         native_unit_of_measurement=UnitOfVolume.MILLILITERS,
+        suggested_display_precision=0,
         value_fn=_while_brewing("pumpedVolume"),
     ),
     TemialSensorDescription(
