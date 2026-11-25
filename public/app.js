@@ -6,6 +6,9 @@ const RING_LENGTH = 2 * Math.PI * 52
 
 const devices = new Map()
 let presets = []
+/** Infusions after the first one: [{ temperature, duration }]. */
+let infusionSteps = []
+const MAX_INFUSIONS = 5
 
 const $ = (selector, root = document) => root.querySelector(selector)
 const form = $('#brew-form')
@@ -95,6 +98,10 @@ function renderScreen(card, state) {
 
   const problem = status && PROBLEMS.find(([check]) => check(status))
   if (problem) return set('problem', 'alert', problem[1], 'Danach kann gebrüht werden.')
+  if (state.session) {
+    const { index, total } = state.session
+    return set('ready', 'cup', `Aufguss ${index + 1} von ${total} fertig`, index + 1 < total ? 'Nächster Aufguss bereit' : 'Genieße deinen Tee!')
+  }
   if (status) return set('ready', 'cup', 'Bereit', 'Wähle einen Tee')
   return set('ready', 'cup', 'Verbunden', 'Warte auf Status …')
 }
@@ -140,6 +147,7 @@ function renderDevice(state) {
     $('.cancel-button', card).addEventListener('click', () => {
       if (confirm('Brühvorgang wirklich abbrechen?')) controlBrew(state.serialNumber, 'cancel')
     })
+    if (state.session) $('.ring-caption', card).textContent = `Aufguss ${state.session.index + 1} von ${state.session.total}`
     if (state.paused) $('.ring-caption', card).textContent = 'pausiert'
 
     const list = $('.brew-stats', card)
@@ -151,6 +159,21 @@ function renderDevice(state) {
     }))
   }
 
+  if (state.connected && state.session && !isBrewing(state)) {
+    const { index, total } = state.session
+    const box = $('.infusion-next', card)
+    box.hidden = false
+    const more = index + 1 < total
+    $('.infusion-text', box).textContent = more
+      ? `${state.session.name}: Aufguss ${index + 1} von ${total} fertig.`
+      : `${state.session.name}: alle ${total} Aufgüsse fertig.`
+    const next = $('.next-infusion', box)
+    next.hidden = !more
+    next.textContent = `${index + 2}. Aufguss starten`
+    next.addEventListener('click', () => infusionAction(state.serialNumber, 'next'))
+    $('.finish-infusions', box).addEventListener('click', () => infusionAction(state.serialNumber, 'done'))
+  }
+
   const meta = []
   if (status?.softwareVersion) meta.push(`Firmware ${status.softwareVersion}`)
   if (status?.WiFiSSID) meta.push(`WLAN ${status.WiFiSSID} (${status.wiFiSignalStrength})`)
@@ -159,6 +182,14 @@ function renderDevice(state) {
   $('.meta', card).textContent = meta.join(' · ')
 
   return card
+}
+
+async function infusionAction(serialNumber, action) {
+  try {
+    await api(`/api/devices/${encodeURIComponent(serialNumber)}/infusion`, { method: 'POST', body: JSON.stringify({ action }) })
+  } catch (err) {
+    alert(err.message)
+  }
 }
 
 async function controlBrew(serialNumber, action) {
@@ -208,7 +239,8 @@ function renderPresets(selectedId = form.elements.preset.value) {
   }
 
   $('#tea-tiles').replaceChildren(
-    ...presets.map((p) => tile(p.id, p.name, `${p.temperature} °C · ${formatDuration(p.duration)} min · ${p.volume} ml`, teaColor(p))),
+    ...presets.map((p) => tile(p.id, p.name, `${p.temperature} °C · ${formatDuration(p.duration)} min · ${p.volume} ml`
+      + (p.infusions?.length ? ` · ${p.infusions.length + 1} Aufgüsse` : ''), teaColor(p))),
     tile('', 'Eigener Tee', 'Werte selbst wählen', null),
   )
   markSelectedTile()
@@ -228,7 +260,8 @@ function markSelectedTile() {
 function updateDirty() {
   const preset = presets.find((p) => p.id === form.elements.preset.value)
   const recipe = readRecipe()
-  const dirty = Boolean(preset) && ['name', ...FIELDS].some((key) => recipe[key] !== preset[key])
+  const dirty = Boolean(preset) && (['name', ...FIELDS].some((key) => recipe[key] !== preset[key])
+    || JSON.stringify(recipe.infusions ?? []) !== JSON.stringify(preset.infusions ?? []))
   $('#update-preset').hidden = !dirty
 }
 
@@ -343,6 +376,60 @@ for (const field of FIELDS) {
   })
 }
 
+// --- Infusions --------------------------------------------------------------
+
+function renderInfusions() {
+  const total = infusionSteps.length + 1
+  $('#infusion-count').replaceChildren(...Array.from({ length: MAX_INFUSIONS }, (_, i) => {
+    const button = el('button', { type: 'button', className: 'segment' }, String(i + 1))
+    button.setAttribute('role', 'radio')
+    button.setAttribute('aria-checked', String(i + 1 === total))
+    button.addEventListener('click', () => setInfusionCount(i + 1))
+    return button
+  }))
+
+  $('#infusion-steps').replaceChildren(...infusionSteps.map((step, i) => {
+    const row = el('div', { className: 'infusion-row' })
+    const value = (key, label) => {
+      const input = el('input', { className: 'slider-value', value: FORMATTERS[key](step[key]), inputMode: key === 'duration' ? 'decimal' : 'numeric' })
+      input.setAttribute('aria-label', `${i + 2}. Aufguss ${label}`)
+      input.addEventListener('focus', () => {
+        input.value = EDITORS[key].toText(step[key])
+        input.select()
+      })
+      input.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+          event.preventDefault()
+          input.blur()
+        }
+      })
+      input.addEventListener('input', (event) => event.stopPropagation())
+      input.addEventListener('blur', () => {
+        const parsed = EDITORS[key].parse(input.value)
+        const { min, max } = form.elements[key]
+        if (parsed !== null) step[key] = Math.min(Number(max), Math.max(Number(min), parsed))
+        input.value = FORMATTERS[key](step[key])
+        updateDirty()
+      })
+      return input
+    }
+    row.append(el('span', {}, `${i + 2}. Aufguss`), value('temperature', 'Temperatur'), value('duration', 'Ziehzeit'))
+    return row
+  }))
+}
+
+/** Adds or removes infusions; new ones start like the previous one with 30 s more steeping time. */
+function setInfusionCount(total) {
+  while (infusionSteps.length + 1 < total) {
+    const previous = infusionSteps.at(-1)
+      ?? { temperature: Number(form.elements.temperature.value), duration: Number(form.elements.duration.value) }
+    infusionSteps.push({ temperature: previous.temperature, duration: Math.min(1800, previous.duration + 30) })
+  }
+  infusionSteps.length = total - 1
+  renderInfusions()
+  updateDirty()
+}
+
 // --- Log & messages ---------------------------------------------------------
 
 function addLog(entry) {
@@ -364,6 +451,7 @@ function showMessage(text, kind) {
 function readRecipe() {
   const recipe = { name: form.elements.name.value.trim() }
   for (const field of FIELDS) recipe[field] = Number(form.elements[field].value)
+  if (infusionSteps.length) recipe.infusions = infusionSteps.map((step) => ({ ...step }))
   return recipe
 }
 
@@ -378,6 +466,8 @@ form.elements.preset.addEventListener('change', () => {
   if (!preset) return
   form.elements.name.value = preset.name
   for (const field of FIELDS) form.elements[field].value = preset[field]
+  infusionSteps = (preset.infusions ?? []).map((step) => ({ ...step }))
+  renderInfusions()
   updateOutputs()
   updateDirty()
 })
@@ -491,6 +581,7 @@ async function init() {
     showMessage(err.message, 'error')
   }
   updateOutputs()
+  renderInfusions()
   renderDeviceSelect()
   connectEvents()
   // Re-render periodically so stale brew progress disappears.

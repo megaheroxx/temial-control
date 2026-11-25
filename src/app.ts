@@ -32,7 +32,7 @@ const STATIC_FILES: Record<string, [file: string, type: string]> = {
   '/vendor/jsQR.js': ['node_modules/jsqr/dist/jsQR.js', JS],
 }
 const MAX_BODY = 10_000
-const RECIPE_KEYS = ['name', 'temperature', 'duration', 'volume', 'preWashTime'] as const
+const RECIPE_KEYS = ['name', 'temperature', 'duration', 'volume', 'preWashTime', 'infusions'] as const
 const SSE_KEEPALIVE_MS = 25_000
 
 class HttpError extends Error {
@@ -109,6 +109,20 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         }
         if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
         if (!hub.control(segments[1], action as BrewAction)) throw new HttpError(409, 'Gerät ist nicht verbunden')
+        return sendJson(res, 202, { sent: true })
+      }
+
+      case 'POST /devices/:id/infusion': {
+        const { action } = ((await readJson(req)) ?? {}) as { action?: unknown }
+        if (action !== 'next' && action !== 'done') throw new HttpError(400, 'action muss next oder done sein')
+        if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
+        if (action === 'done') {
+          if (!hub.finishInfusions(segments[1])) throw new HttpError(409, 'Gerät ist nicht verbunden')
+          return sendJson(res, 202, { sent: true })
+        }
+        const result = hub.nextInfusion(segments[1])
+        if (result === 'no-session') throw new HttpError(409, 'Kein weiterer Aufguss offen')
+        if (result === 'not-connected') throw new HttpError(409, 'Gerät ist nicht verbunden')
         return sendJson(res, 202, { sent: true })
       }
 

@@ -142,6 +142,56 @@ test('brewingComplete ends the brew immediately', async () => {
   assert.ok(app.hub.recentLog().some((entry) => entry.type === 'brewingComplete'))
 })
 
+test('multiple infusions are brewed one after another', async () => {
+  const multi = { ...recipe, preWashTime: 10, infusions: [{ temperature: 85, duration: 150 }, { temperature: 90, duration: 180 }] }
+  const post = (path: string, body: unknown) =>
+    fetch(`${base}/api/devices/${SERIAL}/${path}`, { method: 'POST', headers: auth, body: JSON.stringify(body) })
+
+  let received = nextMessage(device)
+  assert.equal((await post('brew', multi)).status, 202)
+  let message = await received
+  assert.partialDeepStrictEqual(message.content, { temperature: 80, duration: 120, preWashTime: 10, increment: 0, increments: 3 })
+  assert.equal('infusions' in message.content, false, 'the device only gets single-infusion fields')
+  assert.deepEqual(app.hub.get(SERIAL)?.session, { index: 0, total: 3, name: 'Sencha' })
+
+  for (const [index, temperature, duration] of [[1, 85, 150], [2, 90, 180]]) {
+    received = nextMessage(device)
+    assert.equal((await post('infusion', { action: 'next' })).status, 202)
+    message = await received
+    assert.partialDeepStrictEqual(message.content, { name: 'Sencha', temperature, duration, volume: 300, preWashTime: 0, increment: index, increments: 3 })
+  }
+  assert.equal((await post('infusion', { action: 'next' })).status, 409, 'no fourth infusion')
+
+  received = nextMessage(device)
+  assert.equal((await post('infusion', { action: 'done' })).status, 202)
+  message = await received
+  assert.equal(message.op, 'remoteTea')
+  assert.deepEqual(message.content, { action: 'done', userId: 0 })
+  assert.equal(app.hub.get(SERIAL)?.session, null)
+
+  // Cancelling ends a session as well.
+  received = nextMessage(device); await post('brew', multi); await received
+  received = nextMessage(device); await post('control', { action: 'cancel' }); await received
+  assert.equal(app.hub.get(SERIAL)?.session, null)
+  assert.equal((await post('infusion', { action: 'next' })).status, 409)
+})
+
+test('infusions are validated and stored with presets', async () => {
+  const bad = await fetch(`${base}/api/presets`, {
+    method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, infusions: [{ temperature: 150, duration: 60 }] }),
+  })
+  assert.equal(bad.status, 400)
+  assert.match((await bad.json()).error, /2\. Aufguss/)
+
+  const created = await (await fetch(`${base}/api/presets`, {
+    method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, infusions: [{ temperature: 85, duration: 150 }] }),
+  })).json()
+  assert.deepEqual(created.infusions, [{ temperature: 85, duration: 150 }])
+  const cleared = await (await fetch(`${base}/api/presets/${created.id}`, { method: 'PATCH', headers: auth, body: JSON.stringify({ infusions: [] }) })).json()
+  assert.equal('infusions' in cleared, false)
+  await fetch(`${base}/api/presets/${created.id}`, { method: 'DELETE', headers: auth })
+})
+
 test('preset colour can be set and reset', async () => {
   const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
   const patch = (id: string, body: unknown) =>

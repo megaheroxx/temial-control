@@ -75,6 +75,14 @@
           </label>
         </div>
 
+        <div class="infusions">
+          <div class="infusions-head">
+            <span>Aufgüsse</span>
+            <div class="segmented" id="infusion-count" role="radiogroup" aria-label="Anzahl der Aufgüsse"></div>
+          </div>
+          <div id="infusion-steps"></div>
+        </div>
+
         <button type="submit" class="primary wide">Jetzt brühen</button>
         <div class="actions center">
           <button type="button" id="update-preset" class="link accent" hidden>Änderungen speichern</button>
@@ -194,6 +202,13 @@
 
         <div class="device-info">
           <dl class="brew-stats" hidden></dl>
+          <div class="infusion-next" hidden>
+            <p class="infusion-text"></p>
+            <div class="infusion-buttons">
+              <button type="button" class="primary next-infusion"></button>
+              <button type="button" class="secondary finish-infusions">Fertig</button>
+            </div>
+          </div>
           <div class="brew-actions" hidden>
             <button type="button" class="secondary pause-button">Pausieren</button>
             <button type="button" class="secondary danger cancel-button">Abbrechen</button>

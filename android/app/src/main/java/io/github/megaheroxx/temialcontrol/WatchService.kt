@@ -38,6 +38,8 @@ class WatchService : Service() {
         val remaining: Int,
         val total: Int,
         val problem: String?,
+        /** "Aufguss 1 von 3" while a multi-infusion brew is running, otherwise null. */
+        val infusion: Pair<Int, Int>?,
     )
 
     override fun onBind(intent: Intent?): IBinder? = null
@@ -175,7 +177,16 @@ class WatchService : Service() {
         if (previous == null || !notify) return previous != now
 
         if (previous.brewing && !now.brewing && now.connected) {
-            alert(ID_TEA, "Dein Tee ist fertig", "${previous.tea} ist fertig gebrüht.")
+            val infusion = previous.infusion
+            when {
+                infusion == null -> alert(ID_TEA, "Dein Tee ist fertig", "${previous.tea} ist fertig gebrüht.")
+                infusion.first < infusion.second -> alert(
+                    ID_TEA,
+                    "Aufguss ${infusion.first} von ${infusion.second} fertig",
+                    "${previous.tea}: Den nächsten Aufguss startest du in der App.",
+                )
+                else -> alert(ID_TEA, "Alle ${infusion.second} Aufgüsse fertig", "${previous.tea} ist fertig. Genieße deinen Tee!")
+            }
         }
         if (now.problem != null && now.problem != previous.problem && now.connected) {
             alert(ID_PROBLEM, now.problem, "Bitte an der Temial beheben.")
@@ -206,6 +217,7 @@ class WatchService : Service() {
             remaining = remaining,
             total = total,
             problem = problem,
+            infusion = device.optJSONObject("session")?.let { it.optInt("index") + 1 to it.optInt("total") },
         )
     }
 

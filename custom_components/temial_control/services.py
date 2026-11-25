@@ -47,7 +47,11 @@ BREW_PRESET_SCHEMA = vol.Schema(
 
 def recipe_from_preset(preset: dict[str, Any]) -> dict[str, Any]:
     """Build the API recipe from a preset returned by the app."""
-    return {key: preset[key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}
+    recipe = {key: preset[key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}
+    # Further infusions start a multi-infusion brew; the next ones are started from the app.
+    if preset.get("infusions"):
+        recipe["infusions"] = preset["infusions"]
+    return recipe
 
 
 async def async_brew(coordinator: TemialCoordinator, serial_number: str, recipe: dict[str, Any]) -> None:

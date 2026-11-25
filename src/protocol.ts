@@ -52,13 +52,24 @@ export type BindContent = {
 }
 
 /** A brew recipe; units are seconds, °C and ml. */
+/** Temperature and steeping time of an infusion after the first one. */
+export type Infusion = {
+  temperature: number
+  duration: number
+}
+
 export type BrewRecipe = {
   name: string
   temperature: number
   duration: number
   volume: number
   preWashTime: number
+  /** Further infusions of the same leaves (2nd, 3rd, …); volume stays, there is no pre-wash. */
+  infusions?: Infusion[]
 }
+
+/** Position within a multi-infusion brew ("Aufguss index+1 von total"). */
+export type InfusionStep = { index: number, total: number }
 
 export type DeviceMessage = {
   op: string
@@ -129,19 +140,22 @@ export function bindStatusMessage(deviceId: string, code: string, state: 'BOUND'
 export const BREW_ACTIONS = ['cancel', 'pause', 'resume'] as const
 export type BrewAction = typeof BREW_ACTIONS[number]
 
-export function remoteTeaMessage(deviceId: string, action: BrewAction) {
+/** "done" ends a multi-infusion session, as the original app did after the last infusion. */
+export function remoteTeaMessage(deviceId: string, action: BrewAction | 'done') {
   // userId 0 matches the userId our brewTea messages use.
   return envelope(deviceId, 'remoteTea', { action, userId: 0 })
 }
 
-export function brewTeaMessage(deviceId: string, recipe: BrewRecipe) {
+export function brewTeaMessage(deviceId: string, recipe: BrewRecipe, step: InfusionStep = { index: 0, total: 1 }) {
+  // The device only knows the fields of a single infusion.
+  const { infusions: _infusions, ...fields } = recipe
   return envelope(deviceId, 'brewTea', {
-    ...recipe,
+    ...fields,
     changeDate: Date.now(),
     color: '#b1b2b3',
     description: 'tea description',
-    increment: 0,
-    increments: 1,
+    increment: step.index,
+    increments: step.total,
     presetId: 0,
     qrCode: null,
     startInSeconds: 10,
