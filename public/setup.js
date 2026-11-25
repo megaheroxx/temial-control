@@ -118,6 +118,20 @@ function showMessage(text, kind = '') {
   message.className = kind
 }
 
+// fetch() rejects with a TypeError ("Failed to fetch", "NetworkError …", "Load failed") when the server is unreachable.
+function showSetupError(err) {
+  if (!(err instanceof TypeError)) return showMessage(err.message, 'error')
+  message.className = 'error'
+  message.replaceChildren(
+    'Die Verbindung zum Server ist abgebrochen. Das passiert, wenn dieses Gerät ins WLAN der Temial wechselt, der Server aber nicht. '
+      + 'Bei der Einrichtung über den Server muss der Rechner, auf dem der Server läuft, selbst im Temial-WLAN sein – '
+      + 'läuft er per Docker auf einem NAS, klappt dieser Weg nicht. ',
+    navigator.userAgent.includes('TemialControlApp/')
+      ? el('a', { href: 'app://setup', className: 'button primary' }, 'Stattdessen mit diesem Handy einrichten')
+      : 'Nutze stattdessen die Einrichtung in der Android-App oder richte die Temial von einem Laptop aus ein, auf dem der Server läuft.',
+  )
+}
+
 function setRunning(value) {
   running = value
   for (const button of form.querySelectorAll('button')) button.disabled = value
@@ -145,7 +159,7 @@ $('#setup-scan').addEventListener('click', async () => {
     fillNetworks(result.networks)
     showMessage(`${result.networks.length} WLAN(s) gefunden. Wähle eins aus und klicke auf „Einrichten“.`, 'success')
   } catch (err) {
-    showMessage(err.message, 'error')
+    showSetupError(err)
   } finally {
     setRunning(false)
   }
@@ -173,7 +187,7 @@ form.addEventListener('submit', async (event) => {
       'success',
     )
   } catch (err) {
-    showMessage(err.message, 'error')
+    showSetupError(err)
   } finally {
     setRunning(false)
   }

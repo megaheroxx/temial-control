@@ -362,6 +362,7 @@ button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; transfor
 
 #form-message, #setup-message { margin: 0; min-height: 1.5em; text-align: center; font-weight: 600; }
 #setup-message { text-align: left; }
+#setup-message a.button { margin-top: 12px; font-weight: 600; }
 .error { color: var(--bad); }
 .success { color: var(--accent-strong); }
 
