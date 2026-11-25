@@ -28,14 +28,21 @@ class TemialNotConnectedError(TemialApiError):
 class TemialApi:
     """Talks to one Temial Control instance."""
 
-    def __init__(self, session: aiohttp.ClientSession, url: str, token: str | None) -> None:
+    def __init__(
+        self, session: aiohttp.ClientSession, url: str, token: str | None, language: str | None = None
+    ) -> None:
         self._session = session
         self.url = url.rstrip("/")
         self._token = token
+        self._language = language
 
     @property
     def _headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        headers = {"Authorization": f"Bearer {self._token}"} if self._token else {}
+        if self._language:
+            # Error messages from the app in Home Assistant's language.
+            headers["Accept-Language"] = self._language
+        return headers
 
     async def _request(self, method: str, path: str, payload: dict[str, Any] | None = None) -> Any:
         try:
@@ -43,18 +50,18 @@ class TemialApi:
                 method, f"{self.url}{path}", json=payload, headers=self._headers, timeout=REQUEST_TIMEOUT
             ) as resp:
                 if resp.status == 401:
-                    raise TemialAuthError("API-Token fehlt oder ist falsch")
+                    raise TemialAuthError("API token missing or wrong")
                 if resp.status == 204:
                     return None
                 body = await resp.json(content_type=None)
                 error = body.get("error") if isinstance(body, dict) else None
                 if resp.status == 409:
-                    raise TemialNotConnectedError(error or "Die Temial ist nicht verbunden")
+                    raise TemialNotConnectedError(error or "The Temial is not connected")
                 if resp.status >= 400:
                     raise TemialApiError(error or f"HTTP {resp.status}")
                 return body
         except (aiohttp.ClientError, TimeoutError, ValueError) as err:
-            raise TemialApiError(f"Temial Control unter {self.url} nicht erreichbar: {err}") from err
+            raise TemialApiError(f"Temial Control at {self.url} not reachable: {err}") from err
 
     async def get_config(self) -> dict[str, Any]:
         """Return the app configuration; used to validate URL and token."""
@@ -78,9 +85,9 @@ class TemialApi:
             f"{self.url}/api/events", headers=self._headers, timeout=EVENTS_TIMEOUT
         ) as resp:
             if resp.status == 401:
-                raise TemialAuthError("API-Token fehlt oder ist falsch")
+                raise TemialAuthError("API token missing or wrong")
             if resp.status >= 400:
-                raise TemialApiError(f"Event-Stream: HTTP {resp.status}")
+                raise TemialApiError(f"Event stream: HTTP {resp.status}")
 
             event: str | None = None
             data: list[str] = []

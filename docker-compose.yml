@@ -7,8 +7,9 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # APP_TOKEN: "ein-langes-geheimes-token"
-      # BASE_HOST: "http://192.168.178.20:3000"  # IP des Docker-Hosts, nur für die Startausgabe
+      # APP_TOKEN: "a-long-secret-token"
+      # BASE_HOST: "http://192.168.178.20:3000"  # IP of the Docker host, only used for the startup output
+      # APP_LANGUAGE: de  # default language of server messages and presets (en or de)
       TZ: Europe/Berlin
     volumes:
       - temial-data:/data

@@ -48,6 +48,8 @@ class SetupActivity : Activity() {
     private lateinit var steps: TextView
     private lateinit var message: TextView
     private val buttons = mutableListOf<Button>()
+    /** Setup messages in the phone's language. */
+    private val texts by lazy { setupTexts(java.util.Locale.getDefault().language) }
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -58,58 +60,58 @@ class SetupActivity : Activity() {
             setPadding(dp(20), dp(24), dp(20), dp(32))
         }
 
-        content.addView(text("Neue Temial einrichten", 24f, bold = true))
+        content.addView(text(getString(R.string.setup_title), 24f, bold = true))
         content.addView(
-            text("Das Handy verbindet sich kurz mit dem WLAN der Temial und überträgt dein Heim-WLAN und die Adresse deines Servers.", 14f, muted = true),
+            text(getString(R.string.setup_intro), 14f, muted = true),
             margins(top = 6, bottom = 20),
         )
 
         // 1. QR code
-        val qrCard = card(content, "1  QR-Code der Temial")
-        qrCard.addView(text("Auf der Temial oben auf die graue Leiste tippen und „Verbinden“ wählen.", 14f, muted = true), margins(bottom = 10))
-        qrCard.addView(button("QR-Code scannen", primary = true) { scanQr() }, buttonParams())
-        qrInput = input("oder Inhalt des QR-Codes einfügen", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        val qrCard = card(content, getString(R.string.setup_step1))
+        qrCard.addView(text(getString(R.string.setup_step1_hint), 14f, muted = true), margins(bottom = 10))
+        qrCard.addView(button(getString(R.string.setup_scan_qr), primary = true) { scanQr() }, buttonParams())
+        qrInput = input(getString(R.string.setup_qr_hint), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
         qrInput.addTextChangedListener(afterChange { updateQrInfo() })
         qrCard.addView(qrInput, margins(top = 10))
         qrInfo = text("", 14f, muted = true)
         qrCard.addView(qrInfo, margins(top = 6))
 
         // 2. Wi-Fi and server
-        val wifiCard = card(content, "2  Heim-WLAN und Server")
-        wifiCard.addView(label("WLAN-Name"))
-        ssidInput = input("Name deines WLANs", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
+        val wifiCard = card(content, getString(R.string.setup_step2))
+        wifiCard.addView(label(getString(R.string.setup_ssid)))
+        ssidInput = input(getString(R.string.setup_ssid_hint), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS)
         wifiCard.addView(ssidInput, margins(bottom = 6))
-        wifiCard.addView(button("WLANs der Temial anzeigen", primary = false) {
+        wifiCard.addView(button(getString(R.string.setup_show_networks), primary = false) {
             run(scanOnly = true, automatic = Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q)
         }, buttonParams())
-        wifiCard.addView(label("WLAN-Passwort"), margins(top = 12))
-        keyInput = input("Passwort", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        wifiCard.addView(label(getString(R.string.setup_key)), margins(top = 12))
+        keyInput = input(getString(R.string.setup_key_hint), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
         wifiCard.addView(keyInput, margins(bottom = 12))
-        wifiCard.addView(label("Sicherheitstyp"))
+        wifiCard.addView(label(getString(R.string.setup_security)))
         securitySpinner = Spinner(this).apply {
             adapter = ArrayAdapter(
                 this@SetupActivity,
                 android.R.layout.simple_spinner_dropdown_item,
-                listOf("automatisch (wie von der Temial erkannt)") + TemialProtocol.SECURITY_TYPES,
+                listOf(getString(R.string.setup_security_auto)) + TemialProtocol.SECURITY_TYPES,
             )
         }
         wifiCard.addView(securitySpinner, margins(bottom = 12))
-        wifiCard.addView(label("Server-Adresse für die Temial"))
+        wifiCard.addView(label(getString(R.string.setup_base_host)))
         baseHostInput = input("http://192.168.1.40:3010", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         baseHostInput.setText(Settings(this).url)
         wifiCard.addView(baseHostInput)
-        wifiCard.addView(text("Unter dieser Adresse erreicht die Temial deinen Server im Heimnetz.", 13f, muted = true), margins(top = 6))
+        wifiCard.addView(text(getString(R.string.setup_base_host_hint), 13f, muted = true), margins(top = 6))
 
         // 3. Connect
-        val runCard = card(content, "3  Einrichten")
+        val runCard = card(content, getString(R.string.setup_step3))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            runCard.addView(text("Die App fragt Android, ob sie sich mit dem WLAN der Temial verbinden darf.", 14f, muted = true), margins(bottom = 10))
-            runCard.addView(button("Automatisch verbinden und einrichten", primary = true) { run(scanOnly = false, automatic = true) }, buttonParams())
-            runCard.addView(text("Klappt das nicht: Handy in den WLAN-Einstellungen selbst mit „Temial-xxxxx“ verbinden, zurück in die App und:", 14f, muted = true), margins(top = 14, bottom = 10))
+            runCard.addView(text(getString(R.string.setup_auto_hint), 14f, muted = true), margins(bottom = 10))
+            runCard.addView(button(getString(R.string.setup_auto_button), primary = true) { run(scanOnly = false, automatic = true) }, buttonParams())
+            runCard.addView(text(getString(R.string.setup_manual_fallback), 14f, muted = true), margins(top = 14, bottom = 10))
         } else {
-            runCard.addView(text("Handy in den WLAN-Einstellungen mit „Temial-xxxxx“ verbinden, zurück in die App und:", 14f, muted = true), margins(bottom = 10))
+            runCard.addView(text(getString(R.string.setup_manual_hint), 14f, muted = true), margins(bottom = 10))
         }
-        runCard.addView(button("Ich bin im Temial-WLAN – einrichten", primary = false) { run(scanOnly = false, automatic = false) }, buttonParams())
+        runCard.addView(button(getString(R.string.setup_manual_button), primary = false) { run(scanOnly = false, automatic = false) }, buttonParams())
 
         steps = text("", 14f)
         content.addView(steps, margins(top = 16))
@@ -142,14 +144,14 @@ class SetupActivity : Activity() {
         val intent = Intent(this, CaptureActivity::class.java)
             .setAction(Intents.Scan.ACTION)
             .putExtra(Intents.Scan.FORMATS, "QR_CODE")
-            .putExtra(Intents.Scan.PROMPT_MESSAGE, "QR-Code auf dem Display der Temial scannen")
+            .putExtra(Intents.Scan.PROMPT_MESSAGE, getString(R.string.setup_scan_prompt))
             .putExtra(Intents.Scan.BEEP_ENABLED, false)
             .putExtra(Intents.Scan.ORIENTATION_LOCKED, false)
         try {
             @Suppress("DEPRECATION")
             startActivityForResult(intent, SCAN_REQUEST)
         } catch (e: Throwable) {
-            showMessage("QR-Scanner konnte nicht gestartet werden (${e.javaClass.simpleName}). Inhalt bitte von Hand einfügen.", error = true)
+            showMessage(getString(R.string.setup_scanner_failed, e.javaClass.simpleName), error = true)
         }
     }
 
@@ -168,8 +170,8 @@ class SetupActivity : Activity() {
         qrInfo.text = when {
             raw.isBlank() -> ""
             else -> try {
-                val qr = TemialQr.parse(raw)
-                "Seriennummer ${qr.serialNumber} · WLAN der Temial: ${qr.hotspot}"
+                val qr = TemialQr.parse(raw, texts)
+                getString(R.string.setup_qr_info, qr.serialNumber, qr.hotspot)
             } catch (e: SetupException) {
                 e.message
             }
@@ -180,9 +182,9 @@ class SetupActivity : Activity() {
 
     private fun run(scanOnly: Boolean, automatic: Boolean) {
         val qr = try {
-            TemialQr.parse(qrInput.text.toString())
+            TemialQr.parse(qrInput.text.toString(), texts)
         } catch (e: SetupException) {
-            showMessage(e.message ?: "QR-Code fehlt", error = true)
+            showMessage(e.message ?: getString(R.string.setup_qr_missing), error = true)
             return
         }
         val ssid = ssidInput.text.toString()
@@ -191,9 +193,9 @@ class SetupActivity : Activity() {
         val security = securitySpinner.selectedItemPosition.let { if (it == 0) null else it - 1 }
         if (!scanOnly) {
             try {
-                TemialProtocol.validate(ssid, key, baseHost)
+                TemialProtocol.validate(ssid, key, baseHost, texts)
             } catch (e: SetupException) {
-                showMessage(e.message ?: "Eingaben prüfen", error = true)
+                showMessage(e.message ?: getString(R.string.setup_check_input), error = true)
                 return
             }
         }
@@ -204,17 +206,17 @@ class SetupActivity : Activity() {
                 try {
                     val socket = network.socketFactory.createSocket()
                     socket.connect(InetSocketAddress(TemialProtocol.HOST, TemialProtocol.PORT), CONNECT_TIMEOUT_MS)
-                    step("Verbunden mit der Temial")
-                    TemialLink(socket, qr.pairingCode).use { link ->
-                        val flow = TemialSetupFlow(link, qr, ::step)
+                    step(getString(R.string.setup_connected))
+                    TemialLink(socket, qr.pairingCode, texts).use { link ->
+                        val flow = TemialSetupFlow(link, qr, texts, ::step)
                         if (scanOnly) {
                             val networks = flow.scan()
                             runOnUiThread { chooseNetwork(networks) }
                         } else {
                             val confirmed = flow.configure(ssid, key, baseHost, security)
                             showMessage(
-                                (if (confirmed) "Fertig! Die Temial hat die Einstellungen bestätigt. " else "Einstellungen wurden gesendet. ") +
-                                    "Sie verbindet sich jetzt mit deinem WLAN und erscheint in Kürze im Dashboard.",
+                                getString(if (confirmed) R.string.setup_done_confirmed else R.string.setup_done_sent) +
+                                    getString(R.string.setup_done_next),
                                 error = false,
                             )
                         }
@@ -236,7 +238,7 @@ class SetupActivity : Activity() {
     /** Android 10+: ask the system to join the device hotspot just for this app. */
     private fun requestHotspot(qr: TemialQr, onNetwork: (Network) -> Unit) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return
-        step("Verbinde mit ${qr.hotspot} …")
+        step(getString(R.string.setup_connecting_hotspot, qr.hotspot))
         val request = NetworkRequest.Builder()
             .addTransportType(NetworkCapabilities.TRANSPORT_WIFI)
             .removeCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
@@ -248,12 +250,12 @@ class SetupActivity : Activity() {
             override fun onAvailable(network: Network) {
                 if (started) return
                 started = true
-                step("Mit ${qr.hotspot} verbunden")
+                step(getString(R.string.setup_hotspot_connected, qr.hotspot))
                 onNetwork(network)
             }
 
             override fun onUnavailable() {
-                showMessage("${qr.hotspot} wurde nicht gefunden oder die Verbindung abgelehnt. Zeigt die Temial noch den QR-Code?", error = true)
+                showMessage(getString(R.string.setup_hotspot_unavailable, qr.hotspot), error = true)
                 networkCallback = null
                 runOnUiThread { setRunning(false) }
             }
@@ -269,11 +271,11 @@ class SetupActivity : Activity() {
             connectivity.getNetworkCapabilities(it)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
         }
         if (wifi == null) {
-            showMessage("Das Handy ist mit keinem WLAN verbunden. Bitte zuerst mit „${qr.hotspot}“ verbinden.", error = true)
+            showMessage(getString(R.string.setup_no_wifi, qr.hotspot), error = true)
             setRunning(false)
             return
         }
-        step("Nutze das aktuelle WLAN")
+        step(getString(R.string.setup_using_wifi))
         onNetwork(wifi)
     }
 
@@ -284,26 +286,26 @@ class SetupActivity : Activity() {
 
     private fun chooseNetwork(networks: List<WifiNetwork>) {
         if (networks.isEmpty()) {
-            showMessage("Die Temial hat keine WLANs gefunden.", error = true)
+            showMessage(getString(R.string.setup_no_networks), error = true)
             return
         }
-        val labels = networks.map { "${it.ssid}  (${TemialProtocol.SECURITY_TYPES.getOrElse(it.securityType) { "?" }}, Signal ${it.signalStrength})" }
+        val labels = networks.map { getString(R.string.setup_network_label, it.ssid, TemialProtocol.SECURITY_TYPES.getOrElse(it.securityType) { "?" }, it.signalStrength) }
         AlertDialog.Builder(this)
-            .setTitle("WLAN für die Temial")
+            .setTitle(getString(R.string.setup_choose_network))
             .setItems(labels.toTypedArray()) { _, index ->
                 ssidInput.setText(networks[index].ssid)
                 keyInput.requestFocus()
             }
             .show()
-        showMessage("${networks.size} WLAN(s) gefunden. Wähle eins aus, trag das Passwort ein und richte die Temial ein.", error = false)
+        showMessage(getString(R.string.setup_networks_found, networks.size), error = false)
     }
 
     private fun explain(e: Exception, qr: TemialQr): String = when (e) {
-        is SetupException -> e.message ?: "Fehler bei der Einrichtung"
-        is ConnectionClosedException -> "Die Temial hat die Verbindung beendet. Meist passt der QR-Code nicht mehr – bitte neu anzeigen lassen."
-        is SocketTimeoutException -> "Keine Antwort der Temial (Zeitüberschreitung). Ist das Handy mit „${qr.hotspot}“ verbunden?"
-        is ConnectException, is NoRouteToHostException -> "Temial nicht erreichbar. Ist das Handy mit „${qr.hotspot}“ verbunden?"
-        else -> "Fehler: ${e.message ?: e.javaClass.simpleName}"
+        is SetupException -> e.message ?: getString(R.string.setup_error_generic)
+        is ConnectionClosedException -> getString(R.string.setup_error_closed)
+        is SocketTimeoutException -> getString(R.string.setup_error_timeout, qr.hotspot)
+        is ConnectException, is NoRouteToHostException -> getString(R.string.setup_error_unreachable, qr.hotspot)
+        else -> getString(R.string.setup_error_other, e.message ?: e.javaClass.simpleName)
     }
 
     // --- UI helpers ---------------------------------------------------------

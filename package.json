@@ -1,8 +1,8 @@
 {
   "name": "temial-control",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "private": true,
-  "description": "Eigene Steuerzentrale für die Vorwerk Temial: lokaler, Freemial-kompatibler Server mit Web-Dashboard",
+  "description": "Self-hosted control centre for the Vorwerk Temial: local Freemial-compatible server with web dashboard",
   "license": "AGPL-3.0-or-later",
   "type": "module",
   "engines": {

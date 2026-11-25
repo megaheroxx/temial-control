@@ -64,9 +64,17 @@ async def async_brew(coordinator: TemialCoordinator, serial_number: str, recipe:
     try:
         await coordinator.api.brew(serial_number, recipe)
     except TemialNotConnectedError as err:
-        raise HomeAssistantError(f"Temial {serial_number} ist nicht verbunden") from err
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="not_connected",
+            translation_placeholders={"serial_number": serial_number},
+        ) from err
     except TemialApiError as err:
-        raise HomeAssistantError(f"Brühen fehlgeschlagen: {err}") from err
+        raise HomeAssistantError(
+            translation_domain=DOMAIN,
+            translation_key="brew_failed",
+            translation_placeholders={"error": str(err)},
+        ) from err
 
 
 def _with_timer(recipe: dict[str, Any], call: ServiceCall) -> dict[str, Any]:
@@ -80,14 +88,18 @@ def _resolve_device(hass: HomeAssistant, device_id: str) -> tuple[TemialCoordina
     device = dr.async_get(hass).async_get(device_id)
     serial = next((ident for domain, ident in device.identifiers if domain == DOMAIN), None) if device else None
     if device is None or serial is None:
-        raise ServiceValidationError(f"Gerät {device_id} ist keine Temial")
+        raise ServiceValidationError(
+            translation_domain=DOMAIN,
+            translation_key="not_a_temial",
+            translation_placeholders={"device_id": device_id},
+        )
     # Since HA 2026.10 a device belongs to exactly one entry; config_entries is deprecated.
     entry_ids = [device.config_entry_id] if hasattr(device, "config_entry_id") else device.config_entries
     for entry_id in entry_ids:
         entry = hass.config_entries.async_get_entry(entry_id)
         if entry and entry.domain == DOMAIN and entry.state is ConfigEntryState.LOADED:
             return entry.runtime_data, serial
-    raise ServiceValidationError("Temial Control ist für dieses Gerät nicht geladen")
+    raise ServiceValidationError(translation_domain=DOMAIN, translation_key="not_loaded")
 
 
 @callback
@@ -111,8 +123,14 @@ def async_setup_services(hass: HomeAssistant) -> None:
         presets = coordinator.data.presets
         preset = next((p for p in presets if wanted in (p["name"].casefold(), p["id"])), None)
         if preset is None:
-            names = ", ".join(p["name"] for p in presets) or "keine"
-            raise ServiceValidationError(f"Preset „{call.data[ATTR_PRESET]}“ nicht gefunden. Vorhanden: {names}")
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="preset_not_found",
+                translation_placeholders={
+                    "preset": call.data[ATTR_PRESET],
+                    "available": ", ".join(p["name"] for p in presets) or "–",
+                },
+            )
         await async_brew(coordinator, serial, _with_timer(recipe_from_preset(preset), call))
 
     hass.services.async_register(DOMAIN, SERVICE_BREW, brew, schema=BREW_SCHEMA)

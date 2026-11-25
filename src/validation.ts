@@ -1,3 +1,4 @@
+import { translator, type Translate } from './i18n.ts'
 import type { BrewRecipe, Infusion } from './protocol.ts'
 
 // Conservative bounds; the device's real limits are undocumented.
@@ -16,25 +17,27 @@ export type ValidationResult =
   | { ok: true, recipe: BrewRecipe }
   | { ok: false, errors: string[] }
 
-export function validateRecipe(input: unknown): ValidationResult {
+const ENGLISH = translator('en')
+
+export function validateRecipe(input: unknown, t: Translate = ENGLISH): ValidationResult {
   if (typeof input !== 'object' || input === null) {
-    return { ok: false, errors: ['Rezept muss ein Objekt sein'] }
+    return { ok: false, errors: [t('recipe.notObject')] }
   }
   const data = input as Record<string, unknown>
   const errors: string[] = []
 
   const name = typeof data.name === 'string' ? data.name.trim() : ''
-  if (!name) errors.push('name fehlt')
-  else if (name.length > NAME_MAX) errors.push(`name darf höchstens ${NAME_MAX} Zeichen lang sein`)
+  if (!name) errors.push(t('recipe.nameMissing'))
+  else if (name.length > NAME_MAX) errors.push(t('recipe.nameTooLong', { max: NAME_MAX }))
 
   const numbers = {} as Record<keyof typeof LIMITS, number>
   for (const key of Object.keys(LIMITS) as (keyof typeof LIMITS)[]) {
     const { min, max, unit } = LIMITS[key]
     const value = data[key]
     if (typeof value !== 'number' || !Number.isInteger(value)) {
-      errors.push(`${key} muss eine ganze Zahl sein`)
+      errors.push(t('recipe.notInteger', { key }))
     } else if (value < min || value > max) {
-      errors.push(`${key} muss zwischen ${min} und ${max} ${unit} liegen`)
+      errors.push(t('recipe.outOfRange', { key, min, max, unit }))
     } else {
       numbers[key] = value
     }
@@ -43,15 +46,14 @@ export function validateRecipe(input: unknown): ValidationResult {
   const infusions: Infusion[] = []
   if (data.infusions !== undefined && data.infusions !== null) {
     if (!Array.isArray(data.infusions) || data.infusions.length > MAX_INFUSIONS - 1) {
-      errors.push(`infusions muss eine Liste mit höchstens ${MAX_INFUSIONS - 1} weiteren Aufgüssen sein`)
+      errors.push(t('recipe.infusionsList', { max: MAX_INFUSIONS - 1 }))
     } else {
       data.infusions.forEach((step: unknown, i) => {
         const { temperature, duration } = (step ?? {}) as Record<string, unknown>
-        const label = `${i + 2}. Aufguss`
         for (const [key, value] of [['temperature', temperature], ['duration', duration]] as const) {
           const { min, max, unit } = LIMITS[key]
           if (typeof value !== 'number' || !Number.isInteger(value) || value < min || value > max) {
-            errors.push(`${label}: ${key} muss eine ganze Zahl zwischen ${min} und ${max} ${unit} sein`)
+            errors.push(t('recipe.infusionInvalid', { number: i + 2, key, min, max, unit }))
           }
         }
         infusions.push({ temperature: temperature as number, duration: duration as number })

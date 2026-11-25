@@ -117,10 +117,12 @@ async def test_brew_preset_action(hass: HomeAssistant, aioclient_mock: AiohttpCl
         {**{key: PRESETS[0][key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}, "presetId": "p1"}
     ]
 
-    with pytest.raises(ServiceValidationError, match="Vorhanden: Sencha, Assam"):
+    with pytest.raises(ServiceValidationError) as err:
         await hass.services.async_call(
             DOMAIN, "brew_preset", {"device_id": device_id(hass), "preset": "Mate"}, blocking=True
         )
+    assert err.value.translation_key == "preset_not_found"
+    assert err.value.translation_placeholders == {"preset": "Mate", "available": "Sencha, Assam"}
 
 
 async def test_brew_preset_with_timer(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
@@ -137,12 +139,13 @@ async def test_brew_preset_with_timer(hass: HomeAssistant, aioclient_mock: Aioht
 
 async def test_brew_on_disconnected_device(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:
     await setup_integration(hass, aioclient_mock)
-    aioclient_mock.post(BREW_URL, status=409, json={"error": "Gerät ist nicht verbunden"})
+    aioclient_mock.post(BREW_URL, status=409, json={"error": "Device is not connected"})
 
-    with pytest.raises(HomeAssistantError, match="nicht verbunden"):
+    with pytest.raises(HomeAssistantError) as err:
         await hass.services.async_call(
             DOMAIN, "brew_preset", {"device_id": device_id(hass), "preset": "Sencha"}, blocking=True
         )
+    assert err.value.translation_key == "not_connected"
 
 
 async def test_event_stream_pushes_updates(hass: HomeAssistant, aioclient_mock: AiohttpClientMocker) -> None:

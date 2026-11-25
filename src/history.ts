@@ -122,6 +122,6 @@ export class HistoryStore {
       const tmp = this.#file + '.tmp'
       await writeFile(tmp, JSON.stringify(this.#entries))
       await rename(tmp, this.#file)
-    }).catch((err) => console.error('Verlauf konnte nicht gespeichert werden:', err))
+    }).catch((err) => console.error('Could not save the brew history:', err))
   }
 }

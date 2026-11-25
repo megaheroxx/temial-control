@@ -1,0 +1,87 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="settings_intro" formatted="false">Verbinde die App mit deinem Temial-Control-Server im Heimnetz.</string>
+    <string name="settings_server" formatted="false">Server-Adresse</string>
+    <string name="settings_token" formatted="false">API-Token (optional)</string>
+    <string name="settings_token_hint" formatted="false">nur nötig, wenn APP_TOKEN gesetzt ist</string>
+    <string name="settings_notifications" formatted="false">Benachrichtigungen (Tee fertig, Wasser auffüllen, Abwassertank voll)</string>
+    <string name="settings_save" formatted="false">Speichern</string>
+    <string name="settings_new_temial" formatted="false">Neue Temial einrichten</string>
+    <string name="settings_invalid_url" formatted="false">Bitte eine Adresse wie http://192.168.1.40:3010 eingeben</string>
+    <string name="settings_checking" formatted="false">Prüfe Verbindung …</string>
+    <string name="settings_connected">Verbunden mit %1$s</string>
+    <string name="settings_token_required" formatted="false">Der Server verlangt einen gültigen API-Token.</string>
+    <string name="settings_unexpected">Unerwartete Antwort vom Server (HTTP %1$d). Ist das wirklich Temial Control?</string>
+    <string name="settings_unreachable">Server nicht erreichbar: %1$s\nIst das Handy im selben WLAN?</string>
+    <string name="error_title" formatted="false">Temial Control nicht erreichbar</string>
+    <string name="error_same_wifi" formatted="false">Ist das Handy im selben WLAN wie der Server?</string>
+    <string name="error_retry" formatted="false">Erneut versuchen</string>
+    <string name="error_settings" formatted="false">Einstellungen</string>
+    <string name="setup_title" formatted="false">Neue Temial einrichten</string>
+    <string name="setup_intro" formatted="false">Das Handy verbindet sich kurz mit dem WLAN der Temial und überträgt dein Heim-WLAN und die Adresse deines Servers.</string>
+    <string name="setup_step1" formatted="false">1  QR-Code der Temial</string>
+    <string name="setup_step1_hint" formatted="false">Auf der Temial oben auf die graue Leiste tippen und „Verbinden“ wählen.</string>
+    <string name="setup_scan_qr" formatted="false">QR-Code scannen</string>
+    <string name="setup_qr_hint" formatted="false">oder Inhalt des QR-Codes einfügen</string>
+    <string name="setup_step2" formatted="false">2  Heim-WLAN und Server</string>
+    <string name="setup_ssid" formatted="false">WLAN-Name</string>
+    <string name="setup_ssid_hint" formatted="false">Name deines WLANs</string>
+    <string name="setup_show_networks" formatted="false">WLANs der Temial anzeigen</string>
+    <string name="setup_key" formatted="false">WLAN-Passwort</string>
+    <string name="setup_key_hint" formatted="false">Passwort</string>
+    <string name="setup_security" formatted="false">Sicherheitstyp</string>
+    <string name="setup_security_auto" formatted="false">automatisch (wie von der Temial erkannt)</string>
+    <string name="setup_base_host" formatted="false">Server-Adresse für die Temial</string>
+    <string name="setup_base_host_hint" formatted="false">Unter dieser Adresse erreicht die Temial deinen Server im Heimnetz.</string>
+    <string name="setup_step3" formatted="false">3  Einrichten</string>
+    <string name="setup_auto_hint" formatted="false">Die App fragt Android, ob sie sich mit dem WLAN der Temial verbinden darf.</string>
+    <string name="setup_auto_button" formatted="false">Automatisch verbinden und einrichten</string>
+    <string name="setup_manual_fallback" formatted="false">Klappt das nicht: Handy in den WLAN-Einstellungen selbst mit „Temial-xxxxx“ verbinden, zurück in die App und:</string>
+    <string name="setup_manual_hint" formatted="false">Handy in den WLAN-Einstellungen mit „Temial-xxxxx“ verbinden, zurück in die App und:</string>
+    <string name="setup_manual_button" formatted="false">Ich bin im Temial-WLAN – einrichten</string>
+    <string name="setup_scan_prompt" formatted="false">QR-Code auf dem Display der Temial scannen</string>
+    <string name="setup_scanner_failed">QR-Scanner konnte nicht gestartet werden (%1$s). Inhalt bitte von Hand einfügen.</string>
+    <string name="setup_qr_info">Seriennummer %1$s · WLAN der Temial: %2$s</string>
+    <string name="setup_qr_missing" formatted="false">QR-Code fehlt</string>
+    <string name="setup_check_input" formatted="false">Eingaben prüfen</string>
+    <string name="setup_connected" formatted="false">Verbunden mit der Temial</string>
+    <string name="setup_done_confirmed" formatted="false">Fertig! Die Temial hat die Einstellungen bestätigt. </string>
+    <string name="setup_done_sent" formatted="false">Einstellungen wurden gesendet. </string>
+    <string name="setup_done_next" formatted="false">Sie verbindet sich jetzt mit deinem WLAN und erscheint in Kürze im Dashboard.</string>
+    <string name="setup_connecting_hotspot">Verbinde mit %1$s …</string>
+    <string name="setup_hotspot_connected">Mit %1$s verbunden</string>
+    <string name="setup_hotspot_unavailable">%1$s wurde nicht gefunden oder die Verbindung abgelehnt. Zeigt die Temial noch den QR-Code?</string>
+    <string name="setup_no_wifi">Das Handy ist mit keinem WLAN verbunden. Bitte zuerst mit „%1$s“ verbinden.</string>
+    <string name="setup_using_wifi" formatted="false">Nutze das aktuelle WLAN</string>
+    <string name="setup_no_networks" formatted="false">Die Temial hat keine WLANs gefunden.</string>
+    <string name="setup_network_label">%1$s  (%2$s, Signal %3$d)</string>
+    <string name="setup_choose_network" formatted="false">WLAN für die Temial</string>
+    <string name="setup_networks_found">%1$d WLAN(s) gefunden. Wähle eins aus, trag das Passwort ein und richte die Temial ein.</string>
+    <string name="setup_error_generic" formatted="false">Fehler bei der Einrichtung</string>
+    <string name="setup_error_closed" formatted="false">Die Temial hat die Verbindung beendet. Meist passt der QR-Code nicht mehr – bitte neu anzeigen lassen.</string>
+    <string name="setup_error_timeout">Keine Antwort der Temial (Zeitüberschreitung). Ist das Handy mit „%1$s“ verbunden?</string>
+    <string name="setup_error_unreachable">Temial nicht erreichbar. Ist das Handy mit „%1$s“ verbunden?</string>
+    <string name="setup_error_other">Fehler: %1$s</string>
+    <string name="channel_status" formatted="false">Status und Brühfortschritt</string>
+    <string name="channel_alerts" formatted="false">Tee fertig und Hinweise</string>
+    <string name="status_connecting" formatted="false">Verbinde mit Temial Control …</string>
+    <string name="status_retry">Getrennt – neuer Versuch in %1$d s</string>
+    <string name="status_token_rejected" formatted="false">API-Token abgelehnt – bitte in der App prüfen</string>
+    <string name="status_brewing">%1$s – noch %2$s</string>
+    <string name="status_scheduled">%1$s um %2$s geplant</string>
+    <string name="status_ready" formatted="false">Temial bereit</string>
+    <string name="status_offline" formatted="false">Temial offline</string>
+    <string name="status_no_device" formatted="false">Verbunden – noch keine Temial gemeldet</string>
+    <string name="alert_tea_ready" formatted="false">Dein Tee ist fertig</string>
+    <string name="alert_tea_ready_text">%1$s ist fertig gebrüht.</string>
+    <string name="alert_infusion_done">Aufguss %1$d von %2$d fertig</string>
+    <string name="alert_infusion_next">%1$s: Den nächsten Aufguss startest du in der App.</string>
+    <string name="alert_all_infusions">Alle %1$d Aufgüsse fertig</string>
+    <string name="alert_all_infusions_text">%1$s ist fertig. Genieße deinen Tee!</string>
+    <string name="alert_fix_at_temial" formatted="false">Bitte an der Temial beheben.</string>
+    <string name="problem_water" formatted="false">Frischwasser auffüllen</string>
+    <string name="problem_waste_full" formatted="false">Abwassertank leeren</string>
+    <string name="problem_waste_missing" formatted="false">Abwassertank einsetzen</string>
+    <string name="problem_chamber" formatted="false">Brühkammer einsetzen</string>
+    <string name="default_tea" formatted="false">Dein Tee</string>
+</resources>

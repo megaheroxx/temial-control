@@ -168,7 +168,7 @@ class TemialSetupFlowTest {
         val steps = mutableListOf<String>()
         val (flow, link) = flow(steps)
         link.use { assertEquals(listOf("Heimnetz", "Nachbar"), flow.scan().map { it.ssid }) }
-        assertTrue(steps.contains("Seriennummer $SERIAL passt zum QR-Code"))
+        assertTrue(steps.contains("Serial number $SERIAL matches the QR code"))
     }
 
     @Test
@@ -178,7 +178,7 @@ class TemialSetupFlowTest {
         link.use { assertTrue(flow.configure("Heimnetz", "geheim123", "http://192.168.1.40:3010", null)) }
         val config = synchronized(received) { received.last() }
         assertArrayEquals(TemialProtocol.wifiConfig("Heimnetz", 4, "geheim123", "http://192.168.1.40:3010"), config)
-        assertTrue(steps.contains("Temial hat die Konfiguration bestätigt"))
+        assertTrue(steps.contains("The Temial confirmed the configuration"))
     }
 
     @Test
@@ -217,4 +217,24 @@ private fun networksPayload(vararg networks: WifiNetwork): ByteArray {
         out.write(entry)
     }
     return out.toByteArray()
+}
+
+class SetupTextsTest {
+    @Test
+    fun picksGermanOnlyForGermanPhones() {
+        assertEquals(GermanSetupTexts, setupTexts("de"))
+        assertEquals(EnglishSetupTexts, setupTexts("en"))
+        assertEquals(EnglishSetupTexts, setupTexts("fr"))
+        assertEquals("Seriennummer 1 passt zum QR-Code", GermanSetupTexts.serialMatches("1"))
+    }
+
+    @Test
+    fun validationMessagesFollowTheLanguage() {
+        try {
+            TemialProtocol.validate("Heimnetz", "geheim", "ftp://x", GermanSetupTexts)
+            throw AssertionError("expected SetupException")
+        } catch (e: SetupException) {
+            assertTrue(e.message!!.startsWith("Server-Adresse"))
+        }
+    }
 }

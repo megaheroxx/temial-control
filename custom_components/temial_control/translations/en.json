@@ -140,5 +140,22 @@
         }
       }
     }
+  },
+  "exceptions": {
+    "not_connected": {
+      "message": "Temial {serial_number} is not connected"
+    },
+    "brew_failed": {
+      "message": "Brewing failed: {error}"
+    },
+    "not_a_temial": {
+      "message": "Device {device_id} is not a Temial"
+    },
+    "not_loaded": {
+      "message": "Temial Control is not loaded for this device"
+    },
+    "preset_not_found": {
+      "message": "Preset “{preset}” not found. Available: {available}"
+    }
   }
 }

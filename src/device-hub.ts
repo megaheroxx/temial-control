@@ -260,7 +260,8 @@ export class DeviceHub extends EventEmitter {
         if (!wasBrewing && !fromCommand && brew?.remainingTotalTime > 0) {
           this.emit('brewStarted', {
             serialNumber,
-            name: 'An der Temial gestartet',
+            // No name: clients show their own label for brews started at the device.
+            name: '',
             temperature: typeof brew.temperature === 'number' ? Math.round(brew.temperature) : null,
             duration: brew.estimatedTimeBrewing ?? null,
             volume: null,

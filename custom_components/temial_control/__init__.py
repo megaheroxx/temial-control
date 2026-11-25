@@ -24,7 +24,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
 
 async def async_setup_entry(hass: HomeAssistant, entry: TemialConfigEntry) -> bool:
     """Connect to a Temial Control instance."""
-    api = TemialApi(async_get_clientsession(hass), entry.data[CONF_URL], entry.data.get(CONF_TOKEN))
+    api = TemialApi(
+        async_get_clientsession(hass), entry.data[CONF_URL], entry.data.get(CONF_TOKEN), hass.config.language
+    )
     coordinator = TemialCoordinator(hass, entry, api)
     await coordinator.async_config_entry_first_refresh()
     entry.runtime_data = coordinator

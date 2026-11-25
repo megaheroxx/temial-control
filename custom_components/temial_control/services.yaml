@@ -64,7 +64,7 @@ brew_preset:
           integration: temial_control
     preset:
       required: true
-      example: Grüner Tee
+      example: Green tea
       selector:
         text:
     start_in_minutes:

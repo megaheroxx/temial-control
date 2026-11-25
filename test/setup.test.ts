@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, beforeEach, test } from 'node:test'
 import { createApp } from '../src/app.ts'
+import { translator } from '../src/i18n.ts'
 import { DeviceSetup, validateConfigure } from '../src/setup.ts'
 
 const SERIAL = '2104118837'
@@ -128,7 +129,7 @@ test('configure sends Wi-Fi credentials and server address', async () => {
   assert.deepEqual(temial.configs, [{ ssid: 'Heimnetz', securityType: 4, key: 'geheim123', baseHost: 'http://10.0.0.5:3000' }])
 
   const steps = app.hub.recentLog().filter((entry) => entry.type === 'setup').map((entry) => entry.detail)
-  assert.ok(steps.includes('Temial hat die Konfiguration bestätigt'))
+  assert.ok(steps.includes('Temial confirmed the configuration'))
 })
 
 test('configure counts a disconnect after sending as success', async () => {
@@ -142,7 +143,7 @@ test('hidden networks need an explicit security type', async () => {
   const body = { qr: QR, ssid: 'Versteckt', key: 'geheim123', baseHost: 'http://10.0.0.5:3000' }
   const without = await post('/api/setup/configure', body)
   assert.equal(without.status, 400)
-  assert.match((await without.json()).error, /sieht das WLAN „Versteckt“ nicht/)
+  assert.match((await without.json()).error, /cannot see the Wi-Fi “Versteckt”/)
   assert.equal(temial.configs.length, 0)
 
   const withType = await post('/api/setup/configure', { ...body, securityType: 3 })
@@ -153,13 +154,13 @@ test('hidden networks need an explicit security type', async () => {
 test('invalid setup requests are rejected before contacting the device', async () => {
   const valid = { qr: QR, ssid: 'Heimnetz', key: 'geheim123', baseHost: 'http://10.0.0.5:3000' }
   for (const [change, pattern] of [
-    [{ qr: 'kein-qr' }, /Format/],
-    [{ qr: `1:${SERIAL}:0:DE:kurz` }, /Pairing-Code/],
-    [{ ssid: 'Wohnzimmer-Ä' }, /Umlaute/],
-    [{ key: 'x'.repeat(64) }, /WLAN-Passwort/],
-    [{ baseHost: '10.0.0.5:3000' }, /Server-Adresse/],
-    [{ baseHost: 'http://10.0.0.5:3000/pfad' }, /Server-Adresse/],
-    [{ securityType: 9 }, /Sicherheitstyp/],
+    [{ qr: 'kein-qr' }, /format/],
+    [{ qr: `1:${SERIAL}:0:DE:kurz` }, /Pairing code/],
+    [{ ssid: 'Wohnzimmer-Ä' }, /umlauts/],
+    [{ key: 'x'.repeat(64) }, /Wi-Fi password/],
+    [{ baseHost: '10.0.0.5:3000' }, /Server address/],
+    [{ baseHost: 'http://10.0.0.5:3000/pfad' }, /Server address/],
+    [{ securityType: 9 }, /security type/],
   ] as const) {
     assert.throws(() => validateConfigure({ ...valid, ...change }), pattern)
   }
@@ -176,13 +177,25 @@ test('unreachable device names the hotspot to join', async () => {
   await new Promise((resolve) => closed.close(resolve))
 
   const setup = new DeviceSetup(() => {}, { host: '127.0.0.1', port })
-  await assert.rejects(setup.scan(QR), /WLAN „Temial-18837“/)
+  await assert.rejects(setup.scan(QR), /Wi-Fi “Temial-18837”/)
   assert.equal(setup.busy, false)
+})
+
+test('setup messages follow the requested language', async () => {
+  const res = await fetch(`${base}/api/setup/configure`, {
+    method: 'POST', headers: { 'Accept-Language': 'de-DE,de;q=0.9,en;q=0.8' },
+    body: JSON.stringify({ qr: QR, ssid: 'Wohnzimmer-Ä', key: 'x', baseHost: 'http://10.0.0.5:3000' }),
+  })
+  assert.match((await res.json()).error, /WLAN-Name enthält Umlaute/)
+  const steps: string[] = []
+  const setup = new DeviceSetup((_, step) => steps.push(step), { host: '127.0.0.1', port: temial.port })
+  await setup.scan(QR, translator('de'))
+  assert.ok(steps.includes(`Seriennummer ${SERIAL} passt zum QR-Code`))
 })
 
 test('only one setup runs at a time', async () => {
   const setup = new DeviceSetup(() => {}, { host: '127.0.0.1', port: temial.port })
   const first = setup.scan(QR)
-  await assert.rejects(setup.scan(QR), /bereits eine Einrichtung/)
+  await assert.rejects(setup.scan(QR), /already running/)
   await first
 })

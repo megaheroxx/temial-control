@@ -2,6 +2,7 @@ import {
   CheckWifiConnection, DeviceConnection, GetSerialNumberMessage, GetSSIDListMessage, IDontUnderstand,
   LoadSSIDMessage, SerialNumberMessage, SSIDListMessage,
 } from '@freemial/connect'
+import { translator, type Translate } from './i18n.ts'
 
 // First-time setup of a Temial over its own hotspot, following the flow of the Freemial CLI:
 // connect → serial number → Wi-Fi scan → send Wi-Fi credentials and server address.
@@ -45,43 +46,41 @@ const PRINTABLE_ASCII = /^[\x20-\x7e]*$/
 
 export type ParsedQR = { serialNumber: string, pairingCode: string }
 
-export function parseQR(qr: unknown): ParsedQR {
+const ENGLISH = translator('en')
+
+export function parseQR(qr: unknown, t: Translate = ENGLISH): ParsedQR {
   const parts = typeof qr === 'string' ? qr.trim().split(':') : []
   const [identifier, serialNumber, wifiStatus, countryCode, pairingCode] = parts
   if (parts.length !== 5 || !identifier || !serialNumber || !wifiStatus || !countryCode || !pairingCode) {
-    throw new SetupError('QR-Code hat nicht das erwartete Format (5 Teile, getrennt durch Doppelpunkte)')
+    throw new SetupError(t('setup.qrFormat'))
   }
   if (Buffer.byteLength(pairingCode) !== 32) {
-    throw new SetupError('Pairing-Code im QR-Code ist ungültig. QR-Code bitte neu anzeigen lassen.')
+    throw new SetupError(t('setup.pairingCode'))
   }
   return { serialNumber, pairingCode }
 }
 
-export function validateConfigure(input: unknown): ConfigureRequest {
-  if (typeof input !== 'object' || input === null) throw new SetupError('Anfrage muss ein Objekt sein')
+export function validateConfigure(input: unknown, t: Translate = ENGLISH): ConfigureRequest {
+  if (typeof input !== 'object' || input === null) throw new SetupError(t('setup.notObject'))
   const { qr, ssid, key, baseHost, securityType } = input as Record<string, unknown>
-  parseQR(qr)
+  parseQR(qr, t)
 
-  const text = (value: unknown, name: string, min: number, max: number) => {
-    if (typeof value !== 'string') throw new SetupError(`${name} fehlt`)
-    if (!PRINTABLE_ASCII.test(value)) {
-      throw new SetupError(`${name} enthält Umlaute oder Sonderzeichen. Das Freemial-Protokoll überträgt nur ASCII korrekt.`)
-    }
-    if (value.length < min || value.length > max) throw new SetupError(`${name} muss ${min}–${max} Zeichen lang sein`)
+  const text = (value: unknown, field: string, min: number, max: number) => {
+    if (typeof value !== 'string') throw new SetupError(t('setup.fieldMissing', { field }))
+    if (!PRINTABLE_ASCII.test(value)) throw new SetupError(t('setup.fieldAscii', { field }))
+    if (value.length < min || value.length > max) throw new SetupError(t('setup.fieldLength', { field, min, max }))
     return value
   }
 
   const request: ConfigureRequest = {
     qr: (qr as string).trim(),
-    ssid: text(ssid, 'WLAN-Name', 1, SSID_MAX),
-    key: text(key ?? '', 'WLAN-Passwort', 0, KEY_MAX),
-    baseHost: text(typeof baseHost === 'string' ? baseHost.trim() : baseHost, 'Server-Adresse', 1, BASE_HOST_MAX),
+    ssid: text(ssid, t('setup.field.ssid'), 1, SSID_MAX),
+    key: text(key ?? '', t('setup.field.key'), 0, KEY_MAX),
+    baseHost: text(typeof baseHost === 'string' ? baseHost.trim() : baseHost, t('setup.field.baseHost'), 1, BASE_HOST_MAX),
   }
-  if (!/^https?:\/\/[^/\s]+$/.test(request.baseHost)) {
-    throw new SetupError('Server-Adresse muss wie http://192.168.178.20:3000 aussehen (ohne Pfad)')
-  }
+  if (!/^https?:\/\/[^/\s]+$/.test(request.baseHost)) throw new SetupError(t('setup.baseHost'))
   if (securityType !== undefined && securityType !== null) {
-    if (typeof securityType !== 'number' || !SECURITY_TYPES[securityType]) throw new SetupError('Unbekannter Sicherheitstyp')
+    if (typeof securityType !== 'number' || !SECURITY_TYPES[securityType]) throw new SetupError(t('setup.securityType'))
     request.securityType = securityType
   }
   return request
@@ -103,38 +102,38 @@ export class DeviceSetup {
   }
 
   /** Connects to the device and lists the Wi-Fi networks it can see. */
-  scan(qr: unknown): Promise<ScanResult> {
-    const parsed = parseQR(qr)
-    return this.#exclusive(parsed, async (conn, step) => {
-      const serialMatches = await this.#checkSerial(conn, parsed, step)
-      const networks = await this.#scanNetworks(conn, step)
+  scan(qr: unknown, t: Translate = ENGLISH): Promise<ScanResult> {
+    const parsed = parseQR(qr, t)
+    return this.#exclusive(parsed, t, async (conn, step) => {
+      const serialMatches = await this.#checkSerial(conn, parsed, step, t)
+      const networks = await this.#scanNetworks(conn, step, t)
       return { serialNumber: parsed.serialNumber, serialMatches, networks }
     })
   }
 
   /** Sends Wi-Fi credentials and server address to the device. */
-  configure(request: ConfigureRequest): Promise<ConfigureResult> {
-    const parsed = parseQR(request.qr)
-    return this.#exclusive(parsed, async (conn, step) => {
-      await this.#checkSerial(conn, parsed, step)
-      const networks = await this.#scanNetworks(conn, step)
+  configure(request: ConfigureRequest, t: Translate = ENGLISH): Promise<ConfigureResult> {
+    const parsed = parseQR(request.qr, t)
+    return this.#exclusive(parsed, t, async (conn, step) => {
+      await this.#checkSerial(conn, parsed, step, t)
+      const networks = await this.#scanNetworks(conn, step, t)
 
       const visible = networks.find((network) => network.ssid === request.ssid)
       const securityType = visible?.securityType ?? request.securityType
       if (securityType === undefined) {
-        throw new SetupError(`Die Temial sieht das WLAN „${request.ssid}“ nicht. Bei versteckten Netzen den Sicherheitstyp angeben.`)
+        throw new SetupError(t('setup.ssidNotVisible', { ssid: request.ssid }))
       }
 
-      step(`Sende WLAN „${request.ssid}“ und Server ${request.baseHost} …`)
+      step(t('step.sending', { ssid: request.ssid, baseHost: request.baseHost }))
       const message = new LoadSSIDMessage({ ssid: request.ssid, securityType, key: request.key, baseHost: request.baseHost })
       try {
-        const reply = await exchange(conn, message, CheckWifiConnection, CONFIRM_TIMEOUT_MS)
-        step(reply.bool ? 'Temial hat die Konfiguration bestätigt' : 'Temial hat die Konfiguration empfangen')
+        const reply = await exchange(conn, message, CheckWifiConnection, CONFIRM_TIMEOUT_MS, t)
+        step(t(reply.bool ? 'step.confirmed' : 'step.received'))
         return { serialNumber: parsed.serialNumber, confirmed: reply.bool }
       } catch (err) {
         // The device often drops its hotspot right away to join the new Wi-Fi.
         if (err instanceof ConnectionClosed || err instanceof ReplyTimeout) {
-          step('Konfiguration gesendet, Temial wechselt ins WLAN')
+          step(t('step.switching'))
           return { serialNumber: parsed.serialNumber, confirmed: false }
         }
         throw err
@@ -142,18 +141,22 @@ export class DeviceSetup {
     })
   }
 
-  async #exclusive<T>(parsed: ParsedQR, work: (conn: DeviceConnection, step: (text: string) => void) => Promise<T>): Promise<T> {
-    if (this.#busy) throw new SetupError('Es läuft bereits eine Einrichtung')
+  async #exclusive<T>(
+    parsed: ParsedQR,
+    t: Translate,
+    work: (conn: DeviceConnection, step: (text: string) => void) => Promise<T>,
+  ): Promise<T> {
+    if (this.#busy) throw new SetupError(t('error.setupBusy'))
     this.#busy = true
     const step = (text: string) => this.#onStep(parsed.serialNumber, text)
     let conn: DeviceConnection | undefined
     try {
-      step(`Verbinde mit der Temial unter ${this.#target.host}:${this.#target.port} …`)
-      conn = await connect(parsed, this.#target)
-      step('Verbunden')
+      step(t('step.connecting', { target: `${this.#target.host}:${this.#target.port}` }))
+      conn = await connect(parsed, this.#target, t)
+      step(t('step.connected'))
       return await work(conn, step)
     } catch (err) {
-      step(`Fehler: ${err instanceof Error ? err.message : String(err)}`)
+      step(t('step.error', { message: err instanceof Error ? err.message : String(err) }))
       throw err
     } finally {
       conn?.destroy()
@@ -161,20 +164,20 @@ export class DeviceSetup {
     }
   }
 
-  async #checkSerial(conn: DeviceConnection, parsed: ParsedQR, step: (text: string) => void) {
-    const reply = await exchange(conn, new GetSerialNumberMessage(), SerialNumberMessage, SERIAL_TIMEOUT_MS)
+  async #checkSerial(conn: DeviceConnection, parsed: ParsedQR, step: (text: string) => void, t: Translate) {
+    const reply = await exchange(conn, new GetSerialNumberMessage(), SerialNumberMessage, SERIAL_TIMEOUT_MS, t)
     const matches = reply.serialNumber === parsed.serialNumber
-    step(matches ? `Seriennummer ${reply.serialNumber} passt zum QR-Code` : `Achtung: Gerät meldet Seriennummer ${reply.serialNumber}`)
+    step(t(matches ? 'step.serialMatches' : 'step.serialMismatch', { serial: reply.serialNumber }))
     return matches
   }
 
-  async #scanNetworks(conn: DeviceConnection, step: (text: string) => void): Promise<WifiNetwork[]> {
-    step('Temial sucht WLANs (bis zu 30 Sekunden) …')
-    const reply = await exchange(conn, new GetSSIDListMessage(), SSIDListMessage, SCAN_TIMEOUT_MS)
+  async #scanNetworks(conn: DeviceConnection, step: (text: string) => void, t: Translate): Promise<WifiNetwork[]> {
+    step(t('step.scanning'))
+    const reply = await exchange(conn, new GetSSIDListMessage(), SSIDListMessage, SCAN_TIMEOUT_MS, t)
     const networks = reply.ssidList
       .filter((network) => network.ssid)
       .sort((a, b) => b.signalStrength - a.signalStrength)
-    step(`${networks.length} WLAN(s) gefunden`)
+    step(t('step.networksFound', { count: networks.length }))
     return networks
   }
 }
@@ -182,7 +185,7 @@ export class DeviceSetup {
 class ConnectionClosed extends SetupError {}
 class ReplyTimeout extends SetupError {}
 
-function connect(parsed: ParsedQR, target: SetupTarget): Promise<DeviceConnection> {
+function connect(parsed: ParsedQR, target: SetupTarget, t: Translate): Promise<DeviceConnection> {
   const hotspot = `Temial-${parsed.serialNumber.slice(-5)}`
   return new Promise((resolve, reject) => {
     const qrValue = `x:${parsed.serialNumber}:x:x:${parsed.pairingCode}`
@@ -193,7 +196,7 @@ function connect(parsed: ParsedQR, target: SetupTarget): Promise<DeviceConnectio
 
     const fail = () => {
       conn.destroy()
-      reject(new SetupError(`Temial nicht erreichbar. Ist dieser Rechner mit dem WLAN „${hotspot}“ verbunden?`))
+      reject(new SetupError(t('setup.unreachable', { hotspot })))
     }
     conn.once('timeout', fail)
     conn.once('error', fail)
@@ -211,14 +214,15 @@ function exchange<T>(
   message: GetSerialNumberMessage | GetSSIDListMessage | LoadSSIDMessage,
   Expected: new (...args: never[]) => T,
   timeoutMs: number,
+  t: Translate,
 ): Promise<T> {
   return new Promise((resolve, reject) => {
-    const timer = setTimeout(() => done(new ReplyTimeout('Keine Antwort der Temial (Zeitüberschreitung)')), timeoutMs)
+    const timer = setTimeout(() => done(new ReplyTimeout(t('setup.timeout'))), timeoutMs)
     const onMessage = (reply: unknown) => {
       if (reply instanceof Expected) done(null, reply)
-      else if (reply instanceof IDontUnderstand) done(new SetupError('Die Temial hat die Anfrage nicht verstanden. QR-Code neu anzeigen lassen.'))
+      else if (reply instanceof IDontUnderstand) done(new SetupError(t('setup.notUnderstood')))
     }
-    const onClose = () => done(new ConnectionClosed('Die Temial hat die Verbindung beendet. Meist passt der QR-Code nicht mehr. Bitte neu anzeigen lassen.'))
+    const onClose = () => done(new ConnectionClosed(t('setup.closed')))
 
     function done(err: Error | null, value?: T) {
       clearTimeout(timer)
@@ -230,6 +234,6 @@ function exchange<T>(
 
     conn.on('message', onMessage)
     conn.on('close', onClose)
-    conn.sendMessage(message).catch((err: Error) => done(new SetupError(`Senden fehlgeschlagen: ${err.message}`)))
+    conn.sendMessage(message).catch((err: Error) => done(new SetupError(t('setup.sendFailed', { reason: err.message }))))
   })
 }

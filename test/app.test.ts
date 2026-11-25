@@ -57,6 +57,15 @@ test('API rejects requests without the token', async () => {
   assert.equal(wrong.status, 401)
 })
 
+test('API errors follow X-Language, then Accept-Language, default English', async () => {
+  const error = async (headers: Record<string, string>) =>
+    (await (await fetch(`${base}/api/devices/unbekannt/brew`, { method: 'POST', headers: { ...auth, ...headers }, body: JSON.stringify(recipe) })).json()).error
+  assert.equal(await error({}), 'Unknown device')
+  assert.equal(await error({ 'Accept-Language': 'de-DE,de;q=0.9' }), 'Gerät unbekannt')
+  assert.equal(await error({ 'Accept-Language': 'de-DE', 'X-Language': 'en' }), 'Unknown device')
+  assert.equal(await error({ 'X-Language': 'de' }), 'Gerät unbekannt')
+})
+
 test('dashboard is served without a token', async () => {
   const res = await fetch(`${base}/`)
   assert.equal(res.status, 200)
@@ -181,7 +190,7 @@ test('infusions are validated and stored with presets', async () => {
     method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, infusions: [{ temperature: 150, duration: 60 }] }),
   })
   assert.equal(bad.status, 400)
-  assert.match((await bad.json()).error, /2\. Aufguss/)
+  assert.match((await bad.json()).error, /Infusion 2/)
 
   const created = await (await fetch(`${base}/api/presets`, {
     method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, infusions: [{ temperature: 85, duration: 150 }] }),
@@ -220,7 +229,7 @@ test('brews from the app and from the device end up in the history', async () =>
   sendFromDevice('brewStatus', { remainingTotalTime: 200, temperature: 79.6, estimatedTimeBrewing: 180 })
   await waitFor(() => app.history.list(1)[0].source === 'device')
   ;[latest] = await history()
-  assert.equal(latest.name, 'An der Temial gestartet')
+  assert.equal(latest.name, '', 'clients label brews started at the device themselves')
   assert.equal(latest.temperature, 80)
   assert.equal(latest.duration, 180)
   sendFromDevice('brewingComplete', {})

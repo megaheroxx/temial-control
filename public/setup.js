@@ -1,4 +1,5 @@
 import { api, el } from './api.js'
+import { t } from './i18n.js'
 
 const $ = (selector) => document.querySelector(selector)
 const form = $('#setup-form')
@@ -25,8 +26,8 @@ function updateQRInfo() {
   $('#qr-info').textContent = form.elements.qr.value.trim() === ''
     ? ''
     : parsed
-      ? `Seriennummer ${parsed.serialNumber} · WLAN der Temial: ${hotspot}`
-      : 'Das sieht nicht nach dem QR-Code der Temial aus (erwartet: 5 Teile mit Doppelpunkten).'
+      ? t('setup.qrInfo', { serial: parsed.serialNumber, hotspot })
+      : t('setup.qrInvalid')
 }
 
 function setQR(value) {
@@ -39,7 +40,7 @@ function loadJsQR() {
   jsQRLoaded ??= new Promise((resolve, reject) => {
     const script = el('script', { src: '/vendor/jsQR.js' })
     script.onload = () => resolve(window.jsQR)
-    script.onerror = () => reject(new Error('QR-Erkennung konnte nicht geladen werden'))
+    script.onerror = () => reject(new Error(t('setup.qrLoadFailed')))
     document.head.append(script)
   })
   return jsQRLoaded
@@ -62,9 +63,9 @@ $('#qr-photo').addEventListener('change', async (event) => {
     const jsQR = await loadJsQR()
     const bitmap = await createImageBitmap(file)
     const value = decode(jsQR, bitmap, bitmap.width, bitmap.height)
-    if (!value) throw new Error('Auf dem Foto wurde kein QR-Code erkannt. Bitte näher heran und scharf fotografieren.')
+    if (!value) throw new Error(t('setup.qrNotFound'))
     setQR(value)
-    showMessage('QR-Code erkannt.', 'success')
+    showMessage(t('setup.qrFound'), 'success')
   } catch (err) {
     showMessage(err.message, 'error')
   }
@@ -81,14 +82,14 @@ $('#qr-camera').addEventListener('click', async () => {
     video.srcObject = cameraStream
     video.hidden = false
     await video.play()
-    $('#qr-camera').textContent = 'Kamera stoppen'
+    $('#qr-camera').textContent = t('setup.cameraStop')
 
     const scan = () => {
       if (!cameraStream) return
       const value = video.videoWidth ? decode(jsQR, video, video.videoWidth, video.videoHeight) : null
       if (value) {
         setQR(value)
-        showMessage('QR-Code erkannt.', 'success')
+        showMessage(t('setup.qrFound'), 'success')
         stopCamera()
       } else {
         setTimeout(scan, 250)
@@ -97,7 +98,7 @@ $('#qr-camera').addEventListener('click', async () => {
     scan()
   } catch (err) {
     stopCamera()
-    showMessage(`Kamera nicht verfügbar: ${err.message}`, 'error')
+    showMessage(t('setup.cameraUnavailable', { reason: err.message }), 'error')
   }
 })
 
@@ -106,7 +107,7 @@ function stopCamera() {
   cameraStream = null
   video.srcObject = null
   video.hidden = true
-  $('#qr-camera').textContent = 'Mit Kamera scannen'
+  $('#qr-camera').textContent = t('setup.camera')
 }
 
 form.elements.qr.addEventListener('input', updateQRInfo)
@@ -123,12 +124,10 @@ function showSetupError(err) {
   if (!(err instanceof TypeError)) return showMessage(err.message, 'error')
   message.className = 'error'
   message.replaceChildren(
-    'Die Verbindung zum Server ist abgebrochen. Das passiert, wenn dieses Gerät ins WLAN der Temial wechselt, der Server aber nicht. '
-      + 'Bei der Einrichtung über den Server muss der Rechner, auf dem der Server läuft, selbst im Temial-WLAN sein – '
-      + 'läuft er per Docker auf einem NAS, klappt dieser Weg nicht. ',
+    t('setup.lostServer'),
     navigator.userAgent.includes('TemialControlApp/')
-      ? el('a', { href: 'app://setup', className: 'button primary' }, 'Stattdessen mit diesem Handy einrichten')
-      : 'Nutze stattdessen die Einrichtung in der Android-App oder richte die Temial von einem Laptop aus ein, auf dem der Server läuft.',
+      ? el('a', { href: 'app://setup', className: 'button primary' }, t('setup.lostServerApp'))
+      : t('setup.lostServerHint'),
   )
 }
 
@@ -157,7 +156,7 @@ $('#setup-scan').addEventListener('click', async () => {
   try {
     const result = await api('/api/setup/scan', { method: 'POST', body: JSON.stringify({ qr: form.elements.qr.value }) })
     fillNetworks(result.networks)
-    showMessage(`${result.networks.length} WLAN(s) gefunden. Wähle eins aus und klicke auf „Einrichten“.`, 'success')
+    showMessage(t('setup.networksFound', { count: result.networks.length }), 'success')
   } catch (err) {
     showSetupError(err)
   } finally {
@@ -182,8 +181,7 @@ form.addEventListener('submit', async (event) => {
     })
     form.elements.key.value = ''
     showMessage(
-      (result.confirmed ? 'Fertig! Die Temial hat die Einstellungen bestätigt. ' : 'Einstellungen wurden gesendet. ')
-        + 'Verbinde diesen Rechner jetzt wieder mit deinem normalen WLAN. Die Temial erscheint in Kürze oben im Dashboard.',
+      t(result.confirmed ? 'setup.done' : 'setup.sent') + t('setup.reconnect'),
       'success',
     )
   } catch (err) {

@@ -40,22 +40,22 @@ class SettingsActivity : Activity() {
 
         content.addView(text("Temial Control", 26f, bold = true))
         content.addView(
-            text("Verbinde die App mit deinem Temial-Control-Server im Heimnetz.", 15f, muted = true),
+            text(getString(R.string.settings_intro), 15f, muted = true),
             margins(top = 6, bottom = 28),
         )
 
-        content.addView(label("Server-Adresse"))
+        content.addView(label(getString(R.string.settings_server)))
         urlInput = input("http://192.168.1.40:3010", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI)
         urlInput.setText(settings.url)
         content.addView(urlInput, margins(bottom = 18))
 
-        content.addView(label("API-Token (optional)"))
-        tokenInput = input("nur nötig, wenn APP_TOKEN gesetzt ist", InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
+        content.addView(label(getString(R.string.settings_token)))
+        tokenInput = input(getString(R.string.settings_token_hint), InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD)
         tokenInput.setText(settings.token)
         content.addView(tokenInput, margins(bottom = 18))
 
         notifySwitch = Switch(this).apply {
-            text = "Benachrichtigungen (Tee fertig, Wasser auffüllen, Abwassertank voll)"
+            text = getString(R.string.settings_notifications)
             textSize = 15f
             setTextColor(getColor(R.color.text))
             isChecked = settings.notifications
@@ -63,7 +63,7 @@ class SettingsActivity : Activity() {
         content.addView(notifySwitch, margins(bottom = 28))
 
         content.addView(Button(this).apply {
-            text = "Speichern"
+            text = getString(R.string.settings_save)
             isAllCaps = false
             textSize = 16f
             setTextColor(0xFFFFFFFF.toInt())
@@ -78,7 +78,7 @@ class SettingsActivity : Activity() {
         content.addView(status, margins(top = 16))
 
         content.addView(Button(this).apply {
-            text = "Neue Temial einrichten"
+            text = getString(R.string.settings_new_temial)
             isAllCaps = false
             textSize = 16f
             setTextColor(getColor(R.color.accent))
@@ -106,11 +106,11 @@ class SettingsActivity : Activity() {
     private fun save() {
         val url = Settings.normalizeUrl(urlInput.text.toString())
         if (url == null) {
-            urlInput.error = "Bitte eine Adresse wie http://192.168.1.40:3010 eingeben"
+            urlInput.error = getString(R.string.settings_invalid_url)
             return
         }
         val token = tokenInput.text.toString().trim()
-        status.text = "Prüfe Verbindung …"
+        status.text = getString(R.string.settings_checking)
 
         thread {
             val result = checkServer(url, token)
@@ -122,7 +122,7 @@ class SettingsActivity : Activity() {
                     // Restart so a running service picks up the new address and token.
                     stopService(android.content.Intent(this, WatchService::class.java))
                     syncWatchService(this)
-                    Toast.makeText(this, "Verbunden mit $url", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.settings_connected, url), Toast.LENGTH_SHORT).show()
                     finish()
                 } else {
                     status.text = result
@@ -131,7 +131,7 @@ class SettingsActivity : Activity() {
         }
     }
 
-    /** Returns null if the server answers, otherwise a German error message. */
+    /** Returns null if the server answers, otherwise a localised error message. */
     private fun checkServer(url: String, token: String): String? = try {
         val connection = URL("$url/api/config").openConnection() as HttpURLConnection
         connection.connectTimeout = 5000
@@ -141,11 +141,11 @@ class SettingsActivity : Activity() {
         connection.disconnect()
         when (code) {
             200 -> null
-            401 -> "Der Server verlangt einen gültigen API-Token."
-            else -> "Unerwartete Antwort vom Server (HTTP $code). Ist das wirklich Temial Control?"
+            401 -> getString(R.string.settings_token_required)
+            else -> getString(R.string.settings_unexpected, code)
         }
     } catch (e: Exception) {
-        "Server nicht erreichbar: ${e.message}\nIst das Handy im selben WLAN?"
+        getString(R.string.settings_unreachable, e.message ?: e.javaClass.simpleName)
     }
 
     private fun dp(value: Int) =

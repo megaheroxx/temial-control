@@ -1,121 +1,127 @@
 # Temial Control
 
-Eigene Steuerzentrale für die **Vorwerk Temial**. Vorwerk hat die Cloud im Juli 2025 abgeschaltet. Diese App ersetzt sie lokal und baut dafür auf dem Protokoll auf, das das [Freemial-Projekt](https://freemial.github.io/) herausgefunden hat.
+**English** · [Deutsch](README.de.md)
 
-Die Temial verbindet sich per WebSocket direkt mit dieser App, sie ist also selbst der Freemial-kompatible Server. Dazu kommen:
+A self-hosted control centre for the **Vorwerk Temial**. Vorwerk shut down the cloud in July 2025. This app replaces it locally, building on the protocol worked out by the [Freemial project](https://freemial.github.io/).
 
-- **Web-Dashboard**: Live-Status (Deckel, Brühkammer, Frischwasser, Abwassertank, WLAN, Firmware) und Fortschritt des Brühvorgangs
-- **Tee brühen**: Name, Temperatur, Ziehzeit, Menge und Vorspülzeit frei wählbar
-- **Mehrere Aufgüsse**: bis zu 5 Aufgüsse derselben Blätter, jeder mit eigener Temperatur und Ziehzeit
-- **Später brühen**: Uhrzeit wählen, die Temial startet von selbst, auch wenn Server oder Handy zwischendurch aus sind
-- **Brühen steuern**: pausieren, fortsetzen, abbrechen
-- **Verlauf und Statistik**: Tassen pro Tag und Woche, getrunkene Liter, Lieblingstees; zählt auch Tees, die direkt an der Temial gestartet werden
-- **Presets**: gespeichert in `data/presets.json`, mit einigen Standard-Tees vorbelegt
-- **Einrichtung neuer Geräte** direkt im Dashboard: QR-Code per Kamera oder Foto einlesen, WLAN wählen, fertig
-- **REST-API und Server-Sent Events**, um eigene Automationen anzubinden (z. B. Home Assistant)
+The Temial connects directly to this app over WebSocket, so the app itself is the Freemial-compatible server. On top of that you get:
+
+- **Web dashboard**: live status (lid, brewing chamber, fresh water, waste water tank, Wi-Fi, firmware) and brewing progress
+- **Brew tea**: freely choose name, temperature, steeping time, volume and pre-wash time
+- **Multiple infusions**: up to 5 infusions of the same leaves, each with its own temperature and steeping time
+- **Brew later**: pick a time and the Temial starts on its own, even if the server or phone is off in the meantime
+- **Control brewing**: pause, resume, cancel
+- **History and statistics**: cups per day and week, litres drunk, favourite teas; also counts teas started directly on the Temial
+- **Presets**: stored in `data/presets.json`, pre-filled with a few default teas
+- **Set up new devices** right in the dashboard: read the QR code via camera or photo, pick the Wi-Fi, done
+- **REST API and server-sent events** to hook up your own automations (e.g. Home Assistant)
+- **English and German** in the dashboard, Android app, server and Home Assistant integration
 
 ## Screenshots
 
 <p>
-  <img src="docs/screenshots/dashboard-hell.png" alt="Dashboard mit laufendem Brühvorgang, helles Design" width="49%">
-  <img src="docs/screenshots/dashboard-dunkel.png" alt="Dashboard mit laufendem Brühvorgang, dunkles Design" width="49%">
+  <img src="docs/screenshots/dashboard-light.png" alt="Dashboard while brewing, light theme" width="49%">
+  <img src="docs/screenshots/dashboard-dark.png" alt="Dashboard while brewing, dark theme" width="49%">
 </p>
 
 <p>
-  <img src="docs/screenshots/einrichtung.png" alt="Einrichtung einer neuen Temial im Dashboard" width="70%">
-  <img src="docs/screenshots/dashboard-mobil.png" alt="Dashboard auf dem Handy" width="27%">
+  <img src="docs/screenshots/setup.png" alt="Setting up a new Temial in the dashboard" width="70%">
+  <img src="docs/screenshots/dashboard-mobile.png" alt="Dashboard on a phone" width="27%">
 </p>
 
-Die Daten auf den Bildern stammen von einer simulierten Temial.
+The data in the pictures comes from a simulated Temial.
 
-## Voraussetzungen
+## Requirements
 
-- Node.js **22.18 oder neuer**. Die TypeScript-Dateien laufen direkt, ohne Build-Schritt.
-- Rechner und Temial im selben Netzwerk
+- Node.js **22.18 or newer**. The TypeScript files run directly, without a build step.
+- Computer and Temial on the same network
 
-## Starten
+## Getting started
 
 ```bash
 npm install
 npm start
 ```
 
-Beim Start gibt die App die Dashboard-URL und die `baseHost`-Adressen für die Temial aus, z. B. `http://192.168.178.20:3000`.
+On startup the app prints the dashboard URL and the `baseHost` addresses for the Temial, e.g. `http://192.168.178.20:3000`.
 
-| Variable | Standard | Bedeutung |
+| Variable | Default | Meaning |
 |---|---|---|
-| `PORT` | `3000` | Port für Dashboard, API und Geräte-WebSocket |
-| `HOST` | `0.0.0.0` | Netzwerk-Interface. Muss für die Temial erreichbar sein. |
-| `DATA_DIR` | `./data` | Speicherort von Presets und Verlauf |
-| `APP_TOKEN` | – | Wenn gesetzt, verlangt `/api/*` diesen Token (Dashboard fragt einmal danach) |
-| `BASE_HOST` | – | Adresse, die beim Start als `baseHost` angezeigt wird (sinnvoll in Docker) |
+| `PORT` | `3000` | Port for dashboard, API and device WebSocket |
+| `HOST` | `0.0.0.0` | Network interface. Must be reachable for the Temial. |
+| `DATA_DIR` | `./data` | Where presets and history are stored |
+| `APP_TOKEN` | – | If set, `/api/*` requires this token (the dashboard asks for it once) |
+| `BASE_HOST` | – | Address shown as `baseHost` on startup (useful in Docker) |
+| `APP_LANGUAGE` | `en` | Language of the console output, the default presets and API errors when the client sends no language (`en` or `de`) |
+
+**Language:** The dashboard follows the browser's language and can be switched in the top right corner. The Android app follows the phone's language, the Home Assistant integration that of Home Assistant. API errors use the language from `X-Language` or `Accept-Language`.
 
 ## Docker
 
-Fertige Images für `amd64` und `arm64` (NAS, Raspberry Pi) baut GitHub Actions bei jedem Push nach `main` und legt sie unter `ghcr.io/megaheroxx/temial-control` ab. Tags: `latest`, `sha-<commit>` und bei Git-Tags `v1.2.3` auch `1.2.3` und `1.2`. Weil das Package privat ist, ist vorher ein Login mit einem Personal Access Token (Scope `read:packages`) nötig:
+GitHub Actions builds ready-made images for `amd64` and `arm64` (NAS, Raspberry Pi) on every push to `main` and publishes them as `ghcr.io/megaheroxx/temial-control`. Tags: `latest`, `sha-<commit>`, and for Git tags `v1.2.3` also `1.2.3` and `1.2`. If the package is private, log in first with a personal access token (scope `read:packages`):
 
 ```bash
 docker login ghcr.io -u megaheroxx
 docker compose up -d
 ```
 
-Die [docker-compose.yml](docker-compose.yml) zieht nur das fertige Image und braucht keinen Quellcode. Sie passt deshalb direkt für Portainer, Dockhand und ähnliche Tools: Registry `ghcr.io` mit Benutzer und Token anlegen, Compose-Datei als Stack einfügen.
+The [docker-compose.yml](docker-compose.yml) only pulls the ready-made image and needs no source code. It therefore works directly with Portainer, Dockhand and similar tools: add the registry `ghcr.io` with user and token, paste the compose file as a stack.
 
-Lokal selbst bauen:
+Build it yourself:
 
 ```bash
 docker build -t temial-control .
 docker run -d --name temial-control -p 3000:3000 -v temial-data:/data --restart unless-stopped temial-control
 ```
 
-Die Presets liegen im Volume `/data`. Als `baseHost` für die Temial gibst du die **IP des Docker-Hosts** an, nicht die Container-IP, z. B. `http://192.168.178.20:3000`.
+Presets and history live in the `/data` volume. As `baseHost` for the Temial use the **IP of the Docker host**, not the container IP, e.g. `http://192.168.178.20:3000`.
 
-## Temial mit der App verbinden
+## Connecting a Temial to the app
 
-Einmalig pro Gerät, direkt im Dashboard unter **„Neue Temial einrichten“**:
+Once per device, right in the dashboard under **"Set up a new Temial"**:
 
-1. Auf der Temial oben auf die graue Leiste tippen und **„Verbinden“** wählen. Es erscheint ein QR-Code.
-2. QR-Code einlesen: **„Mit Kamera scannen“** (Webcam, nur unter `localhost` oder HTTPS), **„Foto vom QR-Code wählen“** oder den Text einfügen.
-3. WLAN-Name und Passwort eintragen. Die Server-Adresse (`baseHost`) ist mit der Adresse dieses Rechners vorausgefüllt.
-4. Den Rechner mit dem WLAN **`Temial-xxxxx`** verbinden (xxxxx = letzte 5 Stellen der Seriennummer, das Dashboard zeigt den Namen an). Die Seite bleibt offen.
-5. **„Einrichten“** klicken. Die App verbindet sich mit der Temial, prüft die Seriennummer, sucht WLANs und überträgt die Einstellungen. Den Fortschritt zeigt sie Schritt für Schritt an.
-6. Zurück ins normale WLAN wechseln. Die Temial meldet sich kurz darauf im Dashboard.
+1. On the Temial, tap the grey bar at the top and choose **"Connect"**. A QR code appears.
+2. Read the QR code: **"Scan with camera"** (webcam, only on `localhost` or HTTPS), **"Choose a photo of the QR code"** or paste the text.
+3. Enter the Wi-Fi name and password. The server address (`baseHost`) is pre-filled with this computer's address.
+4. Connect the computer to the Wi-Fi **`Temial-xxxxx`** (xxxxx = last 5 digits of the serial number; the dashboard shows the name). Keep the page open.
+5. Click **"Set up"**. The app connects to the Temial, checks the serial number, scans for Wi-Fi networks and sends the settings, showing the progress step by step.
+6. Switch back to your normal Wi-Fi. The Temial shows up in the dashboard shortly after.
 
-**Mit der Android-App geht es einfacher:** Dort richtet das Handy die Temial selbst ein (Abschnitt „Neue Temial einrichten“ → „Mit diesem Handy einrichten“ oder ⚙️ → „Neue Temial einrichten“). Der folgende Hinweis gilt nur für die Einrichtung über den Server.
+**It is easier with the Android app:** there the phone sets up the Temial itself ("Set up a new Temial" section → "Set up with this phone", or ⚙️ → "Set up a new Temial"). The following note only applies to setup through the server.
 
-**Wichtig:** Während der Einrichtung über den Server muss der Rechner, **auf dem die App läuft**, im WLAN der Temial sein. Nur dort ist das Gerät unter `192.168.1.1:4478` erreichbar. Läuft die App per Docker auf einem NAS oder Server am Kabel, richte die Temial einmal von einem Laptop aus ein (`npm start` oder Docker Desktop) und trage als Server-Adresse die des NAS ein. Danach verbindet sich die Temial direkt mit dem NAS.
+**Important:** During setup through the server, the computer **running the app** must be in the Temial's Wi-Fi. Only there is the device reachable at `192.168.1.1:4478`. If the app runs in Docker on a wired NAS or server, set up the Temial once from a laptop (`npm start` or Docker Desktop) and enter the NAS address as the server address. Afterwards the Temial connects directly to the NAS.
 
-Weitere Einschränkungen: WLAN-Name und Passwort dürfen keine Umlaute enthalten, weil das Freemial-Protokoll nur ASCII korrekt überträgt. Für versteckte WLANs den Sicherheitstyp von Hand wählen.
+Further limitations: Wi-Fi name and password must not contain umlauts or other non-ASCII characters, because the Freemial protocol only transfers ASCII correctly. For hidden networks, choose the security type manually.
 
-Alternativ geht die Einrichtung weiter über die offizielle [Freemial-CLI](https://www.npmjs.com/package/@freemial/cli):
+Alternatively, setup still works with the official [Freemial CLI](https://www.npmjs.com/package/@freemial/cli):
 
 ```bash
-npx -y @freemial/cli "<QR-Inhalt>" --ssid DeinWLAN --key DeinPasswort --baseHost http://192.168.178.20:3000
+npx -y @freemial/cli "<QR content>" --ssid YourWifi --key YourPassword --baseHost http://192.168.178.20:3000
 ```
 
 ## API
 
-Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage den Header `Authorization: Bearer <token>` oder für den Event-Stream `?token=<token>`.
+All routes live under `/api`. If `APP_TOKEN` is set, every request needs the header `Authorization: Bearer <token>`, or `?token=<token>` for the event stream.
 
-| Methode | Pfad | Beschreibung |
+| Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/devices` | Alle bekannten Geräte mit letztem Status |
-| `POST` | `/api/devices/:serial/brew` | Brühen. Body: `{ name, temperature, duration, volume, preWashTime }`, optional `infusions: [{ temperature, duration }, …]` für weitere Aufgüsse (insgesamt bis zu 5) und `startInSeconds` für einen Timer (Standard 10, höchstens 86400). Mit `presetId` (und optional `color`) zeigt die Temial den Namen des Presets statt „Manual tea“ |
-| `POST` | `/api/devices/:serial/infusion` | Mehrere Aufgüsse: `{ "action": "next" }` startet den nächsten, `{ "action": "done" }` beendet die Zubereitung |
-| `POST` | `/api/devices/:serial/control` | Laufendes Brühen steuern. Body: `{ "action": "cancel" }`, `"pause"` oder `"resume"` |
-| `GET` | `/api/stats` | Statistik: Tassen heute, diese Woche, insgesamt, Liter, letzte 7 Tage, Lieblingstees |
-| `GET` | `/api/history?limit=50` | Verlauf der Brühvorgänge, neueste zuerst |
-| `GET` | `/api/presets` | Presets auflisten |
-| `POST` | `/api/presets` | Preset anlegen (gleicher Body wie beim Brühen) |
-| `PATCH` | `/api/presets/:id` | Preset ändern, alle Felder optional: `name`, `temperature`, `duration`, `volume`, `preWashTime`, `color` (`null` = automatische Farbe) |
-| `DELETE` | `/api/presets/:id` | Preset löschen |
-| `GET` | `/api/config` | Erlaubte Wertebereiche |
-| `GET` | `/api/events` | Server-Sent Events: `snapshot`, `device`, `log` |
-| `GET` | `/api/setup` | Vorschläge für `baseHost`, Sicherheitstypen, ob eine Einrichtung läuft |
-| `POST` | `/api/setup/scan` | WLANs anzeigen, die die Temial sieht. Body: `{ qr }` |
-| `POST` | `/api/setup/configure` | Temial einrichten. Body: `{ qr, ssid, key, baseHost, securityType? }` |
+| `GET` | `/api/devices` | All known devices with their latest status |
+| `POST` | `/api/devices/:serial/brew` | Brew. Body: `{ name, temperature, duration, volume, preWashTime }`, optionally `infusions: [{ temperature, duration }, …]` for further infusions (up to 5 in total) and `startInSeconds` for a timer (default 10, at most 86400). With `presetId` (and optionally `color`) the Temial shows the preset's name instead of "Manual tea" |
+| `POST` | `/api/devices/:serial/infusion` | Multiple infusions: `{ "action": "next" }` starts the next one, `{ "action": "done" }` finishes the session |
+| `POST` | `/api/devices/:serial/control` | Control a running brew. Body: `{ "action": "cancel" }`, `"pause"` or `"resume"` |
+| `GET` | `/api/stats` | Statistics: cups today, this week, in total, litres, last 7 days, favourite teas |
+| `GET` | `/api/history?limit=50` | History of brews, newest first |
+| `GET` | `/api/presets` | List presets |
+| `POST` | `/api/presets` | Create a preset (same body as for brewing) |
+| `PATCH` | `/api/presets/:id` | Change a preset, all fields optional: `name`, `temperature`, `duration`, `volume`, `preWashTime`, `color` (`null` = automatic colour) |
+| `DELETE` | `/api/presets/:id` | Delete a preset |
+| `GET` | `/api/config` | Allowed value ranges |
+| `GET` | `/api/events` | Server-sent events: `snapshot`, `device`, `log` |
+| `GET` | `/api/setup` | Suggestions for `baseHost`, security types, whether a setup is running |
+| `POST` | `/api/setup/scan` | Show the Wi-Fi networks the Temial sees. Body: `{ qr }` |
+| `POST` | `/api/setup/configure` | Set up a Temial. Body: `{ qr, ssid, key, baseHost, securityType? }` |
 
-Beispiel:
+Example:
 
 ```bash
 curl -X POST http://localhost:3000/api/devices/123456789/brew \
@@ -123,61 +129,62 @@ curl -X POST http://localhost:3000/api/devices/123456789/brew \
   -d '{"name":"Sencha","temperature":80,"duration":120,"volume":300,"preWashTime":0}'
 ```
 
-## Android-App
+## Android app
 
-Unter [android/](android/) liegt eine native Android-App (ab Android 8):
+[android/](android/) contains a native Android app (Android 8 and newer):
 
-- zeigt das Dashboard deines Servers als App
-- **Benachrichtigungen**, auch bei geschlossener App: „Dein Tee ist fertig“, „Frischwasser auffüllen“, „Abwassertank leeren“
-- Fortschritt mit Restzeit in der Benachrichtigungsleiste, während die Temial brüht
-- startet die Benachrichtigungen nach einem Neustart des Handys von selbst
-- **richtet neue Temials direkt vom Handy ein:** QR-Code mit der Kamera scannen, Handy verbindet sich selbst mit dem WLAN der Temial (oder du verbindest dich von Hand) und überträgt Heim-WLAN und Server-Adresse. Dafür braucht es keinen Laptop, und der Server darf per Docker auf dem NAS laufen.
+- shows your server's dashboard as an app
+- **notifications**, even with the app closed: "Your tea is ready", "Refill fresh water", "Empty the waste water tank"
+- progress with remaining time in the notification shade while the Temial is brewing
+- restarts the notifications on its own after the phone reboots
+- **sets up new Temials right from the phone:** scan the QR code with the camera, the phone connects to the Temial's Wi-Fi by itself (or you connect manually) and sends your home Wi-Fi and server address. No laptop needed, and the server can stay in Docker on the NAS.
 
-Die APK baut GitHub Actions bei jedem Release und hängt sie dort an (`temial-control-<version>.apk`). Installieren: APK aufs Handy laden, öffnen und die Installation aus dieser Quelle erlauben. Beim ersten Start fragt die App nach der Server-Adresse, z. B. `http://192.168.1.40:3010`, und optional nach dem `APP_TOKEN`.
+GitHub Actions builds the APK for every release and attaches it there (`temial-control-<version>.apk`). To install: download the APK to the phone, open it and allow installing from this source. On first start the app asks for the server address, e.g. `http://192.168.1.40:3010`, and optionally for the `APP_TOKEN`.
 
-Damit spätere Versionen als Update über die installierte App gehen, muss jede APK mit demselben Schlüssel signiert sein. Dafür braucht das Repo die Actions-Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` und `ANDROID_KEY_ALIAS`. Ohne sie signiert der Workflow mit einem Debug-Schlüssel, und Updates gehen nur nach einer Deinstallation.
+So that later versions install as updates over the existing app, every APK must be signed with the same key. For this the repo needs the Actions secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD` and `ANDROID_KEY_ALIAS`. Without them the workflow signs with a debug key, and updates only work after uninstalling.
 
-Für die Benachrichtigungen hält die App eine dauerhafte Verbindung zum Server und zeigt dafür eine stille Status-Benachrichtigung. Das ist bei Android Pflicht. Die Funktion lässt sich in den App-Einstellungen abschalten.
+For notifications the app keeps a persistent connection to the server and shows a silent status notification for it, which Android requires. The feature can be turned off in the app settings.
 
-Lokal bauen (JDK 17, Android SDK und Gradle 8.10 nötig): `cd android && gradle assembleRelease`
+Build locally (requires JDK 17, Android SDK and Gradle 8.10): `cd android && gradle assembleRelease`
 
 ## Home Assistant
 
-Unter [custom_components/temial_control/](custom_components/temial_control/) liegt eine Integration für Home Assistant. Sie wird über die Oberfläche eingerichtet und braucht kein YAML.
+[custom_components/temial_control/](custom_components/temial_control/) contains an integration for Home Assistant. It is set up through the UI and needs no YAML.
 
-**Installation über HACS (empfohlen)**
+**Installation via HACS (recommended)**
 
-[![In HACS öffnen](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=megaheroxx&repository=temial-control&category=integration)
+[![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=megaheroxx&repository=temial-control&category=integration)
 
-Der Button öffnet HACS direkt in deinem Home Assistant. Alternativ von Hand: **HACS → ⋮ → Benutzerdefinierte Repositories → `https://github.com/megaheroxx/temial-control`, Typ „Integration“**. Danach „Temial Control“ herunterladen und Home Assistant neu starten. Über neue Versionen informiert HACS automatisch.
+The button opens HACS directly in your Home Assistant. Or manually: **HACS → ⋮ → Custom repositories → `https://github.com/megaheroxx/temial-control`, type "Integration"**. Then download "Temial Control" and restart Home Assistant. HACS notifies you about new versions automatically.
 
-**Manuell:** Den Ordner `custom_components/temial_control` nach `/config/custom_components/temial_control` kopieren, z. B. mit dem File-Editor- oder Samba-Add-on, dann Home Assistant neu starten.
+**Manually:** copy the folder `custom_components/temial_control` to `/config/custom_components/temial_control`, e.g. with the File editor or Samba add-on, then restart Home Assistant.
 
-Danach unter **Einstellungen → Geräte & Dienste → Integration hinzufügen → „Temial Control“** die Adresse der App eingeben, z. B. `http://192.168.178.20:3000`, und falls gesetzt den `APP_TOKEN`.
+Then go to **Settings → Devices & services → Add integration → "Temial Control"**, enter the app's address, e.g. `http://192.168.178.20:3000`, and the `APP_TOKEN` if set.
 
-**Was du bekommst**, pro Temial als eigenes Gerät:
+**What you get**, one device per Temial:
 
-| Typ | Entitäten |
+| Type | Entities |
 |---|---|
-| Sensoren | Restzeit, Brühtemperatur, Gepumpte Menge, Letzter Tee, dazu als Diagnose Brühphase, WLAN-Signal, Firmware und Wasserhärte |
-| Binärsensoren | Verbunden, Brüht, Deckel geschlossen, Brühkammer eingesetzt, Frischwasser fehlt, Abwassertank voll, Abwassertank fehlt |
-| Buttons | „… brühen“ für jedes Preset aus der App. Neue Presets erscheinen automatisch. |
+| Sensors | Remaining time, brewing temperature, pumped volume, last tea, plus diagnostic brewing phase, Wi-Fi signal, firmware and water hardness |
+| Binary sensors | Connected, brewing, lid closed, brewing chamber inserted, fresh water missing, waste water tank full, waste water tank missing |
+| Buttons | "Brew …" for every preset from the app. New presets appear automatically. |
 
-Änderungen kommen sofort über den Event-Stream der App an. Zusätzlich fragt die Integration alle 30 Sekunden ab, falls der Stream abreißt.
+Changes arrive instantly via the app's event stream. In addition, the integration polls every 30 seconds in case the stream drops.
 
-**Aktionen für Automationen**
+**Actions for automations**
 
 ```yaml
-# Preset aus der App
+# Preset from the app
 action: temial_control.brew_preset
 data:
-  device_id: <Temial auswählen>
-  preset: Grüner Tee
+  device_id: <select Temial>
+  preset: Green tea
+  start_in_minutes: 30  # optional timer
 
-# Freie Werte
+# Free values
 action: temial_control.brew
 data:
-  device_id: <Temial auswählen>
+  device_id: <select Temial>
   name: Sencha
   temperature: 80
   duration: 120
@@ -185,62 +192,66 @@ data:
   pre_wash_time: 0
 ```
 
-Beispiel „Tee ist fertig“-Benachrichtigung:
+Example "tea is ready" notification:
 
 ```yaml
 triggers:
   - trigger: state
-    entity_id: binary_sensor.temial_2104118837_bruht
+    entity_id: binary_sensor.temial_2104118837_brewing
     from: "on"
     to: "off"
 actions:
   - action: notify.notify
     data:
-      message: Dein Tee ist fertig 🍵
+      message: Your tea is ready 🍵
 ```
 
-Die Entity-IDs hängen von Seriennummer und Sprache ab. Du findest sie auf der Geräteseite.
+Entity IDs depend on the serial number and language. You can find them on the device page.
 
-## Sicherheit
+## Security
 
-- **Nicht ins Internet stellen.** Der Geräte-WebSocket hat keine Authentifizierung, so wie beim Original. Die Temial schickt keinen Token mit.
-- Im Heimnetz mindestens `APP_TOKEN` setzen, wenn andere im Netz nicht brühen oder neue Geräte einrichten sollen.
-- Das WLAN-Passwort aus der Einrichtung wird nur an die Temial weitergegeben und nirgends gespeichert.
-- Kein Reverse-Proxy mit HTTP/2 davor: Die Temial liest HTTP-Header case-sensitiv und verbindet sich nicht, wenn sie kleingeschrieben ankommen.
+- **Do not expose it to the internet.** The device WebSocket has no authentication, just like the original. The Temial sends no token.
+- On your home network, at least set `APP_TOKEN` if others on the network should not brew or set up new devices.
+- The Wi-Fi password from the setup is only passed on to the Temial and never stored.
+- No reverse proxy with HTTP/2 in front: the Temial reads HTTP headers case-sensitively and does not connect if they arrive in lower case.
 
-## Bekannte Grenzen
+## Known limitations
 
-- Was die Zahlenwerte `deviceState`, `activityState` und `phase` bedeuten, ist nicht dokumentiert. Das Dashboard zeigt sie roh an.
-- Abbrechen, Pausieren und Fortsetzen nutzen den Befehl `remoteTea` der Original-App von Vorwerk. Reinigen und Entkalken sind weiterhin nicht bekannt.
-- Die Wertebereiche in [src/validation.ts](src/validation.ts) sind vorsichtig gewählt. Die echten Grenzen des Geräts sind unbekannt.
-- Der Gerätestatus liegt nur im Speicher und ist nach einem Neustart leer, bis sich die Temial wieder meldet.
+- What the numeric values `deviceState`, `activityState` and `phase` mean is undocumented. The dashboard shows them raw.
+- Cancel, pause and resume use the `remoteTea` command of Vorwerk's original app. Cleaning and descaling are still unknown.
+- Showing the preset's name on the Temial (`teaId` -30) comes from the original app and still has to be confirmed on a real device.
+- The value ranges in [src/validation.ts](src/validation.ts) are chosen conservatively. The device's real limits are unknown.
+- Device status is kept in memory only and is empty after a restart until the Temial reports again.
 
-## Entwicklung
+## Development
 
 ```bash
-npm run dev        # Neustart bei Dateiänderungen
-npm test           # Tests mit simulierter Temial
+npm run dev        # restart on file changes
+npm test           # tests with a simulated Temial
 npm run typecheck
 ```
 
-Tests der Home-Assistant-Integration (Python 3.14):
+Tests for the Home Assistant integration (Python 3.14):
 
 ```bash
 pip install pytest-homeassistant-custom-component
 pytest
 ```
 
-| Datei | Inhalt |
+| File | Contents |
 |---|---|
-| [src/protocol.ts](src/protocol.ts) | Nachrichtenformat der Temial (nach der Freemial-Referenz) |
-| [src/device-hub.ts](src/device-hub.ts) | WebSocket-Server für Geräte, Zustand, Ereignislog |
-| [src/app.ts](src/app.ts) | HTTP-Server, REST-API, SSE, Auslieferung des Dashboards |
-| [src/presets.ts](src/presets.ts) | Preset-Speicher |
-| [src/setup.ts](src/setup.ts) | Einrichtung über den Hotspot der Temial (mit `@freemial/connect`) |
-| [public/](public/) | Dashboard (HTML/CSS/JS ohne Framework) |
-| [custom_components/temial_control/](custom_components/temial_control/) | Home-Assistant-Integration (Python) |
-| [tests_ha/](tests_ha/) | Tests der Integration gegen ein echtes Home Assistant |
+| [src/protocol.ts](src/protocol.ts) | Temial message format (following the Freemial reference) |
+| [src/device-hub.ts](src/device-hub.ts) | WebSocket server for devices, state, event log |
+| [src/app.ts](src/app.ts) | HTTP server, REST API, SSE, serving the dashboard |
+| [src/i18n.ts](src/i18n.ts) | Server messages in English and German |
+| [src/presets.ts](src/presets.ts) | Preset store |
+| [src/history.ts](src/history.ts) | Brew history and statistics |
+| [src/setup.ts](src/setup.ts) | Setup via the Temial's hotspot (with `@freemial/connect`) |
+| [public/](public/) | Dashboard (HTML/CSS/JS without a framework), texts in [public/i18n.js](public/i18n.js) |
+| [android/](android/) | Android app (Kotlin), texts in `res/values` and `res/values-de` |
+| [custom_components/temial_control/](custom_components/temial_control/) | Home Assistant integration (Python) |
+| [tests_ha/](tests_ha/) | Integration tests against a real Home Assistant |
 
-## Lizenz
+## License
 
-AGPL-3.0-or-later, wie das Freemial-Projekt, dessen Protokoll-Referenz hier übernommen wurde.
+AGPL-3.0-or-later, like the Freemial project whose protocol reference was adopted here.

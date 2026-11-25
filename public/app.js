@@ -1,4 +1,5 @@
 import { api, el, readToken } from './api.js'
+import { lang, locale, setLang, t, translatePage } from './i18n.js'
 
 const FIELDS = ['temperature', 'duration', 'volume', 'preWashTime']
 const LOG_SIZE = 100
@@ -24,17 +25,17 @@ const ICONS = {
 
 // Device conditions that block brewing, in the order the device would complain.
 const PROBLEMS = [
-  [(s) => !s.enoughFreshWater, 'Frischwasser auffüllen'],
-  [(s) => s.wasteWaterTankFull, 'Abwassertank leeren'],
-  [(s) => !s.wasteWaterTankPresent, 'Abwassertank einsetzen'],
-  [(s) => !s.chamberPresent, 'Brühkammer einsetzen'],
-  [(s) => !s.lidClosed, 'Deckel schließen'],
+  [(s) => !s.enoughFreshWater, 'problem.water'],
+  [(s) => s.wasteWaterTankFull, 'problem.wasteFull'],
+  [(s) => !s.wasteWaterTankPresent, 'problem.wasteMissing'],
+  [(s) => !s.chamberPresent, 'problem.chamber'],
+  [(s) => !s.lidClosed, 'problem.lid'],
 ]
 
 // --- Formatting -------------------------------------------------------------
 
-const formatTime = (ms) => new Date(ms).toLocaleTimeString('de-DE')
-const formatClock = (ms) => new Date(ms).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+const formatTime = (ms) => new Date(ms).toLocaleTimeString(locale)
+const formatClock = (ms) => new Date(ms).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 
 /** "1 h 05 min" or "12 min". */
 function formatCountdown(ms) {
@@ -92,7 +93,7 @@ function renderScreen(card, state) {
     $('.screen-text', card).textContent = text
   }
 
-  if (!state.connected) return set('offline', 'offline', 'Offline', 'Wartet auf Verbindung')
+  if (!state.connected) return set('offline', 'offline', t('device.offline'), t('device.waiting'))
 
   if (isBrewing(state)) {
     const brew = state.brewStatus
@@ -101,30 +102,31 @@ function renderScreen(card, state) {
     $('.screen-ring', card).hidden = false
     $('.ring-value', card).style.strokeDashoffset = String(RING_LENGTH * (1 - progress))
     $('.ring-time', card).textContent = formatDuration(brew.remainingTotalTime)
-    return set('brewing', null, state.lastBrew?.name ?? 'Tee', formatTemperature(brew.temperature))
+    return set('brewing', null, state.lastBrew?.name || t('device.tea'), formatTemperature(brew.temperature))
   }
 
   const problem = status && PROBLEMS.find(([check]) => check(status))
-  if (problem) return set('problem', 'alert', problem[1], 'Danach kann gebrüht werden.')
+  if (problem) return set('problem', 'alert', t(problem[1]), t('device.thenBrew'))
   if (state.scheduled && state.scheduled.startsAt > Date.now()) {
-    return set('ready', 'clock', `Geplant: ${formatClock(state.scheduled.startsAt)}`,
-      `${state.scheduled.name} · in ${formatCountdown(state.scheduled.startsAt - Date.now())}`)
+    return set('ready', 'clock', t('device.scheduledTitle', { time: formatClock(state.scheduled.startsAt) }),
+      t('device.scheduledText', { name: state.scheduled.name, countdown: formatCountdown(state.scheduled.startsAt - Date.now()) }))
   }
   if (state.session) {
     const { index, total } = state.session
-    return set('ready', 'cup', `Aufguss ${index + 1} von ${total} fertig`, index + 1 < total ? 'Nächster Aufguss bereit' : 'Genieße deinen Tee!')
+    return set('ready', 'cup', t('device.infusionDoneTitle', { index: index + 1, total }), t(index + 1 < total ? 'device.nextReady' : 'device.enjoy'))
   }
-  if (status) return set('ready', 'cup', 'Bereit', 'Wähle einen Tee')
-  return set('ready', 'cup', 'Verbunden', 'Warte auf Status …')
+  if (status) return set('ready', 'cup', t('device.ready'), t('device.chooseTea'))
+  return set('ready', 'cup', t('device.connected'), t('device.waitingStatus'))
 }
 
 function renderDevice(state) {
   const card = $('#device-template').content.firstElementChild.cloneNode(true)
-  $('.device-name', card).textContent = 'Temial'
-  $('.device-sub', card).textContent = `Seriennummer ${state.serialNumber}`
+  translatePage(card)
+  $('.device-name', card).textContent = t('device.name')
+  $('.device-sub', card).textContent = t('device.serial', { serial: state.serialNumber })
 
   const pill = $('.state', card)
-  pill.textContent = state.connected ? 'Online' : 'Offline'
+  pill.textContent = t(state.connected ? 'device.online' : 'device.offline')
   pill.classList.add(state.connected ? 'online' : 'offline')
 
   renderScreen(card, state)
@@ -132,11 +134,11 @@ function renderDevice(state) {
   const status = state.deviceStatus
   if (status) {
     const checks = [
-      [status.lidClosed, 'Deckel geschlossen'],
-      [status.chamberPresent, 'Brühkammer eingesetzt'],
-      [status.enoughFreshWater, 'Genug Frischwasser'],
-      [status.wasteWaterTankPresent, 'Abwassertank eingesetzt'],
-      [!status.wasteWaterTankFull, 'Abwassertank nicht voll'],
+      [status.lidClosed, t('check.lid')],
+      [status.chamberPresent, t('check.chamber')],
+      [status.enoughFreshWater, t('check.water')],
+      [status.wasteWaterTankPresent, t('check.wasteTank')],
+      [!status.wasteWaterTankFull, t('check.wasteNotFull')],
     ]
     $('.checks', card).replaceChildren(
       ...checks.map(([ok, label]) => el('li', { className: ok ? 'ok' : 'bad' }, label)),
@@ -146,21 +148,21 @@ function renderDevice(state) {
   if (state.connected && isBrewing(state)) {
     const brew = state.brewStatus
     const stats = [
-      ['Tee', state.lastBrew?.name ?? (brew.teaId === -20 ? 'Eigener Tee' : `Tee Nr. ${brew.teaId}`)],
-      ['Temperatur', formatTemperature(brew.temperature)],
-      ['Gepumpt', `${Math.round(Number(brew.pumpedVolume))} ml`],
-      ['Phase', String(brew.phase)],
+      [t('device.tea'), state.lastBrew?.name || (brew.teaId === -20 || brew.teaId === -30 ? t('device.ownTea') : t('device.teaNumber', { id: brew.teaId }))],
+      [t('device.temperature'), formatTemperature(brew.temperature)],
+      [t('device.pumped'), `${Math.round(Number(brew.pumpedVolume))} ml`],
+      [t('device.phase'), String(brew.phase)],
     ]
     const actions = $('.brew-actions', card)
     actions.hidden = false
     const pause = $('.pause-button', card)
-    pause.textContent = state.paused ? 'Fortsetzen' : 'Pausieren'
+    pause.textContent = t(state.paused ? 'device.resume' : 'device.pause')
     pause.addEventListener('click', () => controlBrew(state.serialNumber, state.paused ? 'resume' : 'pause'))
     $('.cancel-button', card).addEventListener('click', () => {
-      if (confirm('Brühvorgang wirklich abbrechen?')) controlBrew(state.serialNumber, 'cancel')
+      if (confirm(t('device.confirmCancel'))) controlBrew(state.serialNumber, 'cancel')
     })
-    if (state.session) $('.ring-caption', card).textContent = `Aufguss ${state.session.index + 1} von ${state.session.total}`
-    if (state.paused) $('.ring-caption', card).textContent = 'pausiert'
+    if (state.session) $('.ring-caption', card).textContent = t('device.infusionOf', { index: state.session.index + 1, total: state.session.total })
+    if (state.paused) $('.ring-caption', card).textContent = t('device.paused')
 
     const list = $('.brew-stats', card)
     list.hidden = false
@@ -174,9 +176,9 @@ function renderDevice(state) {
   if (state.connected && state.scheduled && state.scheduled.startsAt > Date.now() && !isBrewing(state)) {
     const box = $('.scheduled-box', card)
     box.hidden = false
-    $('.scheduled-text', box).textContent = `${state.scheduled.name} startet um ${formatClock(state.scheduled.startsAt)}.`
+    $('.scheduled-text', box).textContent = t('device.scheduledBox', { name: state.scheduled.name, time: formatClock(state.scheduled.startsAt) })
     $('.cancel-timer', box).addEventListener('click', () => {
-      if (confirm('Geplanten Tee wirklich abbrechen?')) controlBrew(state.serialNumber, 'cancel')
+      if (confirm(t('device.confirmCancelTimer'))) controlBrew(state.serialNumber, 'cancel')
     })
   }
 
@@ -186,20 +188,20 @@ function renderDevice(state) {
     box.hidden = false
     const more = index + 1 < total
     $('.infusion-text', box).textContent = more
-      ? `${state.session.name}: Aufguss ${index + 1} von ${total} fertig.`
-      : `${state.session.name}: alle ${total} Aufgüsse fertig.`
+      ? t('device.infusionDoneBox', { name: state.session.name, index: index + 1, total })
+      : t('device.allInfusionsDone', { name: state.session.name, total })
     const next = $('.next-infusion', box)
     next.hidden = !more
-    next.textContent = `${index + 2}. Aufguss starten`
+    next.textContent = t('device.startInfusion', { number: index + 2 })
     next.addEventListener('click', () => infusionAction(state.serialNumber, 'next'))
     $('.finish-infusions', box).addEventListener('click', () => infusionAction(state.serialNumber, 'done'))
   }
 
   const meta = []
-  if (status?.softwareVersion) meta.push(`Firmware ${status.softwareVersion}`)
-  if (status?.WiFiSSID) meta.push(`WLAN ${status.WiFiSSID} (${status.wiFiSignalStrength})`)
-  if (status?.waterHardness) meta.push(`Wasserhärte ${status.waterHardness}`)
-  meta.push(`zuletzt gesehen ${formatTime(state.lastSeen)}`)
+  if (status?.softwareVersion) meta.push(t('device.firmware', { version: status.softwareVersion }))
+  if (status?.WiFiSSID) meta.push(t('device.wifi', { ssid: status.WiFiSSID, signal: status.wiFiSignalStrength }))
+  if (status?.waterHardness) meta.push(t('device.hardness', { value: status.waterHardness }))
+  meta.push(t('device.lastSeen', { time: formatTime(state.lastSeen) }))
   $('.meta', card).textContent = meta.join(' · ')
 
   return card
@@ -239,7 +241,7 @@ function renderDeviceSelect() {
 function renderPresets(selectedId = form.elements.preset.value) {
   const select = form.elements.preset
   select.replaceChildren(
-    el('option', { value: '' }, 'eigenes Rezept'),
+    el('option', { value: '' }, t('brew.customRecipe')),
     ...presets.map((p) => el('option', { value: p.id }, p.name)),
   )
   select.value = presets.some((p) => p.id === selectedId) ? selectedId : ''
@@ -261,8 +263,8 @@ function renderPresets(selectedId = form.elements.preset.value) {
 
   $('#tea-tiles').replaceChildren(
     ...presets.map((p) => tile(p.id, p.name, `${p.temperature} °C · ${formatDuration(p.duration)} min · ${p.volume} ml`
-      + (p.infusions?.length ? ` · ${p.infusions.length + 1} Aufgüsse` : ''), teaColor(p))),
-    tile('', 'Eigener Tee', 'Werte selbst wählen', null),
+      + (p.infusions?.length ? ` · ${t('brew.infusionsTile', { count: p.infusions.length + 1 })}` : ''), teaColor(p))),
+    tile('', t('brew.ownTea'), t('brew.ownTeaHint'), null),
   )
   markSelectedTile()
 }
@@ -277,7 +279,7 @@ function markSelectedTile() {
   updateDirty()
 }
 
-/** Shows "Änderungen speichern" while the form differs from the selected preset. */
+/** Shows "Update preset" while the form differs from the selected preset. */
 function updateDirty() {
   const preset = presets.find((p) => p.id === form.elements.preset.value)
   const recipe = readRecipe()
@@ -306,17 +308,17 @@ function renderColors() {
     return button
   }
 
-  const custom = el('label', { className: 'swatch custom', title: 'Eigene Farbe' })
+  const custom = el('label', { className: 'swatch custom', title: t('brew.colourCustom') })
   const isCustom = preset.color && !SWATCHES.includes(preset.color.toLowerCase())
   custom.setAttribute('aria-checked', String(Boolean(isCustom)))
   if (isCustom) custom.style.setProperty('--swatch', preset.color)
   const picker = el('input', { type: 'color', value: preset.color ?? teaColor(preset) })
-  picker.setAttribute('aria-label', 'Eigene Farbe wählen')
+  picker.setAttribute('aria-label', t('brew.colourPick'))
   picker.addEventListener('change', () => setPresetColor(preset, picker.value))
   custom.append(picker)
 
   $('#swatches').replaceChildren(
-    swatch('Automatisch', null, null),
+    swatch(t('brew.colourAuto'), null, null),
     ...SWATCHES.map((color) => swatch(color, color, color)),
     custom,
   )
@@ -413,7 +415,7 @@ function renderInfusions() {
     const row = el('div', { className: 'infusion-row' })
     const value = (key, label) => {
       const input = el('input', { className: 'slider-value', value: FORMATTERS[key](step[key]), inputMode: key === 'duration' ? 'decimal' : 'numeric' })
-      input.setAttribute('aria-label', `${i + 2}. Aufguss ${label}`)
+      input.setAttribute('aria-label', `${t('brew.infusionRow', { number: i + 2 })} ${label}`)
       input.addEventListener('focus', () => {
         input.value = EDITORS[key].toText(step[key])
         input.select()
@@ -434,7 +436,7 @@ function renderInfusions() {
       })
       return input
     }
-    row.append(el('span', {}, `${i + 2}. Aufguss`), value('temperature', 'Temperatur'), value('duration', 'Ziehzeit'))
+    row.append(el('span', {}, t('brew.infusionRow', { number: i + 2 })), value('temperature', t('brew.temperature')), value('duration', t('brew.duration')))
     return row
   }))
 }
@@ -455,7 +457,7 @@ function setInfusionCount(total) {
 
 function addLog(entry) {
   const item = el('li')
-  const text = entry.type === 'setup' ? `Einrichtung: ${entry.detail}` : entry.type
+  const text = entry.type === 'setup' ? t('log.setup', { detail: entry.detail }) : entry.type
   item.append(el('time', {}, formatTime(entry.time)), `${entry.serialNumber}  ${text}`)
   const log = $('#log')
   log.prepend(item)
@@ -514,8 +516,10 @@ function updateStart() {
   $('#start-later').hidden = !startLater
   const start = startLater ? plannedStart() : null
   const tomorrow = start && new Date(start).getDate() !== new Date().getDate()
-  $('#start-hint').textContent = start ? `${tomorrow ? 'Morgen' : 'Heute'} um ${formatClock(start)}, in ${formatCountdown(start - Date.now())}` : ''
-  form.querySelector('[type=submit]').textContent = start ? `Für ${formatClock(start)} planen` : 'Jetzt brühen'
+  $('#start-hint').textContent = start
+    ? t('brew.startHint', { day: t(tomorrow ? 'brew.tomorrow' : 'brew.today'), time: formatClock(start), countdown: formatCountdown(start - Date.now()) })
+    : ''
+  form.querySelector('[type=submit]').textContent = start ? t('brew.planFor', { time: formatClock(start) }) : t('brew.brewNow')
 }
 
 for (const button of document.querySelectorAll('[data-start]')) {
@@ -540,7 +544,7 @@ form.addEventListener('submit', async (event) => {
   event.preventDefault()
   const serial = form.elements.device.value
   const start = startLater ? plannedStart() : null
-  if (startLater && !start) return showMessage('Bitte eine Uhrzeit wählen.', 'error')
+  if (startLater && !start) return showMessage(t('brew.chooseTime'), 'error')
   try {
     const body = readRecipe()
     if (start) body.startInSeconds = Math.round((start - Date.now()) / 1000)
@@ -554,7 +558,7 @@ form.addEventListener('submit', async (event) => {
       method: 'POST',
       body: JSON.stringify(body),
     })
-    showMessage(start ? `„${body.name}“ ist für ${formatClock(start)} geplant.` : `„${body.name}“ wird zubereitet.`, 'success')
+    showMessage(start ? t('brew.planned', { name: body.name, time: formatClock(start) }) : t('brew.brewing', { name: body.name }), 'success')
     if (start) {
       startLater = false
       updateStart()
@@ -572,7 +576,7 @@ $('#update-preset').addEventListener('click', async () => {
     const updated = await api(`/api/presets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(readRecipe()) })
     presets = presets.map((p) => (p.id === updated.id ? updated : p))
     renderPresets(updated.id)
-    showMessage(`Preset „${updated.name}“ aktualisiert.`, 'success')
+    showMessage(t('brew.presetUpdated', { name: updated.name }), 'success')
   } catch (err) {
     showMessage(err.message, 'error')
   }
@@ -584,7 +588,7 @@ $('#save-preset').addEventListener('click', async () => {
     const preset = await api('/api/presets', { method: 'POST', body: JSON.stringify(readRecipe()) })
     presets.push(preset)
     renderPresets(preset.id)
-    showMessage(`Preset „${preset.name}“ gespeichert.`, 'success')
+    showMessage(t('brew.presetSaved', { name: preset.name }), 'success')
   } catch (err) {
     showMessage(err.message, 'error')
   }
@@ -593,12 +597,12 @@ $('#save-preset').addEventListener('click', async () => {
 $('#delete-preset').addEventListener('click', async () => {
   const id = form.elements.preset.value
   const preset = presets.find((p) => p.id === id)
-  if (!preset || !confirm(`Preset „${preset.name}“ löschen?`)) return
+  if (!preset || !confirm(t('brew.confirmDelete', { name: preset.name }))) return
   try {
     await api(`/api/presets/${encodeURIComponent(id)}`, { method: 'DELETE' })
     presets = presets.filter((p) => p.id !== id)
     renderPresets('')
-    showMessage(`Preset „${preset.name}“ gelöscht.`, 'success')
+    showMessage(t('brew.presetDeleted', { name: preset.name }), 'success')
   } catch (err) {
     showMessage(err.message, 'error')
   }
@@ -612,11 +616,11 @@ function connectEvents() {
   const pill = $('#connection')
 
   source.addEventListener('open', () => {
-    pill.textContent = 'Live'
+    pill.textContent = t('app.live')
     pill.className = 'status-pill online'
   })
   source.addEventListener('error', () => {
-    pill.textContent = 'Getrennt'
+    pill.textContent = t('app.disconnected')
     pill.className = 'status-pill offline'
   })
   source.addEventListener('snapshot', (event) => {
@@ -639,6 +643,8 @@ function connectEvents() {
     document.dispatchEvent(new CustomEvent('temial:log', { detail: entry }))
   })
 }
+
+$('#language').addEventListener('click', () => setLang(lang === 'de' ? 'en' : 'de'))
 
 async function init() {
   // Inside the Android app the native settings screen is reachable from the app bar.

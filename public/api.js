@@ -1,3 +1,5 @@
+import { lang, t } from './i18n.js'
+
 const TOKEN_KEY = 'temial-control-token'
 
 export function readToken() {
@@ -15,10 +17,12 @@ export async function api(path, options = {}, retry = true) {
     headers: {
       ...(options.body ? { 'Content-Type': 'application/json' } : {}),
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      // Server error messages in the dashboard's language.
+      'X-Language': lang,
     },
   })
   if (res.status === 401 && retry) {
-    const entered = prompt('API-Token (APP_TOKEN) eingeben:')
+    const entered = prompt(t('app.tokenPrompt'))
     if (entered) {
       storeToken(entered)
       return api(path, options, false)

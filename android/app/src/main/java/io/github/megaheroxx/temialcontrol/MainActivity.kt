@@ -108,7 +108,7 @@ class MainActivity : Activity() {
 
     private fun showError(description: String) {
         val html = """
-            <!doctype html><html lang="de"><head><meta name="viewport" content="width=device-width, initial-scale=1">
+            <!doctype html><html lang="${java.util.Locale.getDefault().language}"><head><meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
               body{font:16px/1.5 system-ui,sans-serif;margin:0;padding:48px 24px;text-align:center;color:#1e1e1c;background:#f3f3f1}
               @media (prefers-color-scheme:dark){body{color:#f0f0ee;background:#121312}}
@@ -116,11 +116,11 @@ class MainActivity : Activity() {
               a{display:inline-block;margin:8px;padding:12px 22px;border-radius:999px;border:2px solid #00a046;color:#00a046;text-decoration:none;font-weight:600}
               a.primary{background:#00a046;color:#fff}
             </style></head><body>
-            <h1>Temial Control nicht erreichbar</h1>
+            <h1>${escapeHtml(getString(R.string.error_title))}</h1>
             <p>${escapeHtml(settings.url)}<br>${escapeHtml(description)}</p>
-            <p>Ist das Handy im selben WLAN wie der Server?</p>
-            <a class="primary" href="app://retry">Erneut versuchen</a>
-            <a href="app://settings">Einstellungen</a>
+            <p>${escapeHtml(getString(R.string.error_same_wifi))}</p>
+            <a class="primary" href="app://retry">${escapeHtml(getString(R.string.error_retry))}</a>
+            <a href="app://settings">${escapeHtml(getString(R.string.error_settings))}</a>
             </body></html>
         """.trimIndent()
         webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", null)

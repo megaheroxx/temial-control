@@ -38,7 +38,7 @@ class WatchService : Service() {
         val remaining: Int,
         val total: Int,
         val problem: String?,
-        /** "Aufguss 1 von 3" while a multi-infusion brew is running, otherwise null. */
+        /** Infusion number and total while a multi-infusion brew is running, otherwise null. */
         val infusion: Pair<Int, Int>?,
         /** Name and start time (epoch ms) of a brew planned with a timer. */
         val scheduled: Pair<String, Long>?,
@@ -51,16 +51,16 @@ class WatchService : Service() {
         settings = Settings(this)
         notifications = getSystemService(NotificationManager::class.java)
         notifications.createNotificationChannel(
-            NotificationChannel(CHANNEL_STATUS, "Status und Brühfortschritt", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL_STATUS, getString(R.string.channel_status), NotificationManager.IMPORTANCE_LOW)
                 .apply { setShowBadge(false) },
         )
         notifications.createNotificationChannel(
-            NotificationChannel(CHANNEL_ALERTS, "Tee fertig und Hinweise", NotificationManager.IMPORTANCE_HIGH),
+            NotificationChannel(CHANNEL_ALERTS, getString(R.string.channel_alerts), NotificationManager.IMPORTANCE_HIGH),
         )
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val notification = statusNotification("Verbinde mit Temial Control …", null)
+        val notification = statusNotification(getString(R.string.status_connecting), null)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             startForeground(ID_STATUS, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE)
         } else {
@@ -97,7 +97,7 @@ class WatchService : Service() {
                 return
             } catch (e: Exception) {
                 if (!running) return
-                showStatus("Getrennt – neuer Versuch in ${delay / 1000} s", null)
+                showStatus(getString(R.string.status_retry, (delay / 1000).toInt()), null)
             }
             try {
                 Thread.sleep(delay)
@@ -118,7 +118,7 @@ class WatchService : Service() {
         if (settings.token.isNotEmpty()) conn.setRequestProperty("Authorization", "Bearer ${settings.token}")
         try {
             if (conn.responseCode == 401) {
-                showStatus("API-Token abgelehnt – bitte in der App prüfen", null)
+                showStatus(getString(R.string.status_token_rejected), null)
                 throw IllegalStateException("unauthorized")
             }
             BufferedReader(InputStreamReader(conn.inputStream, Charsets.UTF_8)).use { reader ->
@@ -181,17 +181,17 @@ class WatchService : Service() {
         if (previous.brewing && !now.brewing && now.connected) {
             val infusion = previous.infusion
             when {
-                infusion == null -> alert(ID_TEA, "Dein Tee ist fertig", "${previous.tea} ist fertig gebrüht.")
+                infusion == null -> alert(ID_TEA, getString(R.string.alert_tea_ready), getString(R.string.alert_tea_ready_text, previous.tea))
                 infusion.first < infusion.second -> alert(
                     ID_TEA,
-                    "Aufguss ${infusion.first} von ${infusion.second} fertig",
-                    "${previous.tea}: Den nächsten Aufguss startest du in der App.",
+                    getString(R.string.alert_infusion_done, infusion.first, infusion.second),
+                    getString(R.string.alert_infusion_next, previous.tea),
                 )
-                else -> alert(ID_TEA, "Alle ${infusion.second} Aufgüsse fertig", "${previous.tea} ist fertig. Genieße deinen Tee!")
+                else -> alert(ID_TEA, getString(R.string.alert_all_infusions, infusion.second), getString(R.string.alert_all_infusions_text, previous.tea))
             }
         }
         if (now.problem != null && now.problem != previous.problem && now.connected) {
-            alert(ID_PROBLEM, now.problem, "Bitte an der Temial beheben.")
+            alert(ID_PROBLEM, now.problem, getString(R.string.alert_fix_at_temial))
         }
         return previous != now
     }
@@ -205,17 +205,17 @@ class WatchService : Service() {
             brew.optInt("estimatedTimePrewash") + brew.optInt("estimatedTimeHeating") + brew.optInt("estimatedTimeBrewing")
         val problem = status?.let {
             when {
-                !it.optBoolean("enoughFreshWater", true) -> "Frischwasser auffüllen"
-                it.optBoolean("wasteWaterTankFull", false) -> "Abwassertank leeren"
-                !it.optBoolean("wasteWaterTankPresent", true) -> "Abwassertank einsetzen"
-                !it.optBoolean("chamberPresent", true) -> "Brühkammer einsetzen"
+                !it.optBoolean("enoughFreshWater", true) -> getString(R.string.problem_water)
+                it.optBoolean("wasteWaterTankFull", false) -> getString(R.string.problem_waste_full)
+                !it.optBoolean("wasteWaterTankPresent", true) -> getString(R.string.problem_waste_missing)
+                !it.optBoolean("chamberPresent", true) -> getString(R.string.problem_chamber)
                 else -> null
             }
         }
         return Snapshot(
             connected = device.optBoolean("connected"),
             brewing = remaining > 0 && brewAgeMs < BREW_STALE_MS,
-            tea = device.optJSONObject("lastBrew")?.optString("name")?.ifEmpty { null } ?: "Dein Tee",
+            tea = device.optJSONObject("lastBrew")?.optString("name")?.ifEmpty { null } ?: getString(R.string.default_tea),
             remaining = remaining,
             total = total,
             problem = problem,
@@ -231,18 +231,18 @@ class WatchService : Service() {
         val brewing = all.firstOrNull { it.brewing }
         when {
             brewing != null -> showStatus(
-                "${brewing.tea} – noch ${formatDuration(brewing.remaining)}",
+                getString(R.string.status_brewing, brewing.tea, formatDuration(brewing.remaining)),
                 if (brewing.total > 0) brewing.total to (brewing.total - brewing.remaining).coerceAtLeast(0) else null,
             )
             all.any { it.connected && it.scheduled != null } -> {
                 val (name, startsAt) = all.first { it.connected && it.scheduled != null }.scheduled!!
-                showStatus("$name um ${formatClock(startsAt)} geplant", null)
+                showStatus(getString(R.string.status_scheduled, name, formatClock(startsAt)), null)
             }
             all.any { it.connected && it.problem != null } ->
                 showStatus(all.first { it.connected && it.problem != null }.problem!!, null)
-            all.any { it.connected } -> showStatus("Temial bereit", null)
-            all.isNotEmpty() -> showStatus("Temial offline", null)
-            else -> showStatus("Verbunden – noch keine Temial gemeldet", null)
+            all.any { it.connected } -> showStatus(getString(R.string.status_ready), null)
+            all.isNotEmpty() -> showStatus(getString(R.string.status_offline), null)
+            else -> showStatus(getString(R.string.status_no_device), null)
         }
     }
 
