@@ -93,6 +93,33 @@
       </form>
     </section>
 
+    <section class="card" id="stats">
+      <div class="section-head"><h2>Statistik</h2></div>
+      <div class="stat-tiles">
+        <div class="stat"><span class="stat-value" id="stat-today">–</span><span class="stat-label">heute</span></div>
+        <div class="stat"><span class="stat-value" id="stat-week">–</span><span class="stat-label">diese Woche</span></div>
+        <div class="stat"><span class="stat-value" id="stat-total">–</span><span class="stat-label">insgesamt</span></div>
+        <div class="stat"><span class="stat-value" id="stat-liters">–</span><span class="stat-label">Liter</span></div>
+      </div>
+      <p class="hint" id="stats-empty" hidden>Noch keine Tassen gezählt. Jeder Aufguss erscheint hier, auch wenn er direkt an der Temial gestartet wird.</p>
+      <div id="stats-body">
+        <figure class="chart">
+          <figcaption>Tassen pro Tag, letzte 7 Tage</figcaption>
+          <div class="bars" id="stat-days"></div>
+          <table class="visually-hidden" id="stat-table">
+            <thead><tr><th>Tag</th><th>Tassen</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </figure>
+        <h3>Lieblingstees</h3>
+        <ol class="favorites" id="stat-favorites"></ol>
+        <details class="history">
+          <summary><h3>Verlauf</h3></summary>
+          <ol id="history-list"></ol>
+        </details>
+      </div>
+    </section>
+
     <section class="card" id="setup">
       <details>
         <summary><h2>Neue Temial einrichten</h2></summary>
@@ -222,5 +249,6 @@
 
   <script src="/app.js" type="module"></script>
   <script src="/setup.js" type="module"></script>
+  <script src="/stats.js" type="module"></script>
 </body>
 </html>

@@ -192,6 +192,45 @@ test('infusions are validated and stored with presets', async () => {
   await fetch(`${base}/api/presets/${created.id}`, { method: 'DELETE', headers: auth })
 })
 
+test('brews from the app and from the device end up in the history', async () => {
+  const history = async () => (await fetch(`${base}/api/history?limit=5`, { headers: auth })).json()
+
+  let received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/brew`, { method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, name: 'Verlauf-Test' }) })
+  await received
+  let [latest] = await history()
+  assert.equal(latest.name, 'Verlauf-Test')
+  assert.equal(latest.source, 'app')
+  assert.equal(latest.status, 'brewing')
+
+  sendFromDevice('brewingComplete', {})
+  await waitFor(() => app.history.list(1)[0].status === 'done')
+
+  received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/brew`, { method: 'POST', headers: auth, body: JSON.stringify(recipe) })
+  await received
+  received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/control`, { method: 'POST', headers: auth, body: JSON.stringify({ action: 'cancel' }) })
+  await received
+  assert.equal(app.history.list(1)[0].status, 'cancelled')
+
+  // A brew started at the Temial itself: brew status without a recent command from us.
+  app.hub.get(SERIAL)!.lastBrew = null
+  sendFromDevice('brewStatus', { remainingTotalTime: 0 })
+  sendFromDevice('brewStatus', { remainingTotalTime: 200, temperature: 79.6, estimatedTimeBrewing: 180 })
+  await waitFor(() => app.history.list(1)[0].source === 'device')
+  ;[latest] = await history()
+  assert.equal(latest.name, 'An der Temial gestartet')
+  assert.equal(latest.temperature, 80)
+  assert.equal(latest.duration, 180)
+  sendFromDevice('brewingComplete', {})
+  await waitFor(() => app.history.list(1)[0].status === 'done')
+
+  const stats = await (await fetch(`${base}/api/stats`, { headers: auth })).json()
+  assert.ok(stats.total >= 2)
+  assert.equal(stats.days.length, 7)
+})
+
 test('preset colour can be set and reset', async () => {
   const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
   const patch = (id: string, body: unknown) =>

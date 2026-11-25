@@ -3,7 +3,8 @@ import { readFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { join } from 'node:path'
-import { DeviceHub, type DeviceState, type LogEntry } from './device-hub.ts'
+import { DeviceHub, type BrewStart, type DeviceState, type LogEntry } from './device-hub.ts'
+import { HistoryStore } from './history.ts'
 import { baseHostCandidates } from './network.ts'
 import { PresetStore } from './presets.ts'
 import { BREW_ACTIONS, type BrewAction } from './protocol.ts'
@@ -27,6 +28,7 @@ const STATIC_FILES: Record<string, [file: string, type: string]> = {
   '/api.js': ['public/api.js', JS],
   '/app.js': ['public/app.js', JS],
   '/setup.js': ['public/setup.js', JS],
+  '/stats.js': ['public/stats.js', JS],
   '/style.css': ['public/style.css', 'text/css; charset=utf-8'],
   // Served locally because the browser has no internet while on the Temial hotspot.
   '/vendor/jsQR.js': ['node_modules/jsqr/dist/jsQR.js', JS],
@@ -47,6 +49,10 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
   const hub = new DeviceHub()
   const presets = new PresetStore(dataDir)
   await presets.load()
+  const history = new HistoryStore(dataDir)
+  await history.load()
+  hub.on('brewStarted', ({ serialNumber, ...brew }: BrewStart) => history.start({ serialNumber, ...brew }))
+  hub.on('brewEnded', (serialNumber: string, status: 'done' | 'cancelled') => history.finish(serialNumber, status))
   const setup = new DeviceSetup((serialNumber, step) => hub.record(serialNumber, 'setup', step), setupTarget)
 
   const server = createServer(async (req, res) => {
@@ -63,8 +69,9 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
   // Temials connect via WebSocket upgrade on any path (with ?deviceId=<serial>).
   server.on('upgrade', (req, socket, head) => hub.handleUpgrade(req, socket, head))
 
-  function close(): Promise<void> {
+  async function close(): Promise<void> {
     hub.close()
+    await history.flush()
     const closed = new Promise<void>((resolve) => server.close(() => resolve()))
     server.closeAllConnections()
     return closed
@@ -125,6 +132,14 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         if (result === 'not-connected') throw new HttpError(409, 'Gerät ist nicht verbunden')
         return sendJson(res, 202, { sent: true })
       }
+
+      case 'GET /history': {
+        const limit = Math.min(500, Math.max(1, Number(url.searchParams.get('limit')) || 50))
+        return sendJson(res, 200, history.list(limit))
+      }
+
+      case 'GET /stats':
+        return sendJson(res, 200, history.stats())
 
       case 'GET /presets':
         return sendJson(res, 200, presets.list())
@@ -208,7 +223,7 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
     req.on('close', cleanup)
   }
 
-  return { server, hub, presets, close }
+  return { server, hub, presets, history, close }
 }
 
 function isAuthorized(req: IncomingMessage, url: URL, token: string): boolean {

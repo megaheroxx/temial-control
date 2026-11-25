@@ -8,6 +8,7 @@ Die Temial verbindet sich per WebSocket direkt mit dieser App, sie ist also selb
 - **Tee brühen**: Name, Temperatur, Ziehzeit, Menge und Vorspülzeit frei wählbar
 - **Mehrere Aufgüsse**: bis zu 5 Aufgüsse derselben Blätter, jeder mit eigener Temperatur und Ziehzeit
 - **Brühen steuern**: pausieren, fortsetzen, abbrechen
+- **Verlauf und Statistik**: Tassen pro Tag und Woche, getrunkene Liter, Lieblingstees; zählt auch Tees, die direkt an der Temial gestartet werden
 - **Presets**: gespeichert in `data/presets.json`, mit einigen Standard-Tees vorbelegt
 - **Einrichtung neuer Geräte** direkt im Dashboard: QR-Code per Kamera oder Foto einlesen, WLAN wählen, fertig
 - **REST-API und Server-Sent Events**, um eigene Automationen anzubinden (z. B. Home Assistant)
@@ -44,7 +45,7 @@ Beim Start gibt die App die Dashboard-URL und die `baseHost`-Adressen für die T
 |---|---|---|
 | `PORT` | `3000` | Port für Dashboard, API und Geräte-WebSocket |
 | `HOST` | `0.0.0.0` | Netzwerk-Interface. Muss für die Temial erreichbar sein. |
-| `DATA_DIR` | `./data` | Speicherort der Presets |
+| `DATA_DIR` | `./data` | Speicherort von Presets und Verlauf |
 | `APP_TOKEN` | – | Wenn gesetzt, verlangt `/api/*` diesen Token (Dashboard fragt einmal danach) |
 | `BASE_HOST` | – | Adresse, die beim Start als `baseHost` angezeigt wird (sinnvoll in Docker) |
 
@@ -101,6 +102,8 @@ Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage d
 | `POST` | `/api/devices/:serial/brew` | Brühen. Body: `{ name, temperature, duration, volume, preWashTime }`, optional `infusions: [{ temperature, duration }, …]` für weitere Aufgüsse (insgesamt bis zu 5) |
 | `POST` | `/api/devices/:serial/infusion` | Mehrere Aufgüsse: `{ "action": "next" }` startet den nächsten, `{ "action": "done" }` beendet die Zubereitung |
 | `POST` | `/api/devices/:serial/control` | Laufendes Brühen steuern. Body: `{ "action": "cancel" }`, `"pause"` oder `"resume"` |
+| `GET` | `/api/stats` | Statistik: Tassen heute, diese Woche, insgesamt, Liter, letzte 7 Tage, Lieblingstees |
+| `GET` | `/api/history?limit=50` | Verlauf der Brühvorgänge, neueste zuerst |
 | `GET` | `/api/presets` | Presets auflisten |
 | `POST` | `/api/presets` | Preset anlegen (gleicher Body wie beim Brühen) |
 | `PATCH` | `/api/presets/:id` | Preset ändern, alle Felder optional: `name`, `temperature`, `duration`, `volume`, `preWashTime`, `color` (`null` = automatische Farbe) |

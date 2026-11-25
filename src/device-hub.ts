@@ -23,6 +23,17 @@ export type DeviceState = {
   session: (InfusionStep & { name: string }) | null
 }
 
+/** A brew that started; used for the history. */
+export type BrewStart = {
+  serialNumber: string
+  name: string
+  temperature: number | null
+  duration: number | null
+  volume: number | null
+  infusion?: string
+  source: 'app' | 'device'
+}
+
 export type LogEntry = {
   time: number
   serialNumber: string
@@ -31,11 +42,16 @@ export type LogEntry = {
 }
 
 const HEARTBEAT_MS = 30_000
+/** A brew status older than this means the brew is over. */
+const BREW_STALE_MS = 60_000
+/** A brew status this soon after our own command belongs to that command. */
+const COMMAND_MATCH_MS = 90_000
 const LOG_SIZE = 100
 
 /**
  * Accepts WebSocket connections from Temial devices and keeps their latest state.
- * Emits 'device' (DeviceState) on every state change and 'log' (LogEntry) for every event.
+ * Emits 'device' (DeviceState) on every state change, 'log' (LogEntry) for every event,
+ * 'brewStarted' (BrewStart) and 'brewEnded' (serialNumber, 'done' | 'cancelled') for the history.
  */
 export class DeviceHub extends EventEmitter {
   readonly #wss = new WebSocketServer({ noServer: true })
@@ -108,7 +124,12 @@ export class DeviceHub extends EventEmitter {
     state.lastBrew = { ...single, sentAt: Date.now() }
     state.paused = false
     state.session = step.total > 1 ? { ...step, name: recipe.name } : null
-    this.record(serialNumber, 'brewCommand', step.total > 1 ? { ...single, infusion: `${step.index + 1}/${step.total}` } : single)
+    const infusion = step.total > 1 ? `${step.index + 1}/${step.total}` : undefined
+    this.record(serialNumber, 'brewCommand', infusion ? { ...single, infusion } : single)
+    this.emit('brewStarted', {
+      serialNumber, name: single.name, temperature: single.temperature, duration: single.duration,
+      volume: single.volume, infusion, source: 'app',
+    } satisfies BrewStart)
     this.emit('device', state)
     return true
   }
@@ -126,7 +147,10 @@ export class DeviceHub extends EventEmitter {
 
     ws.send(JSON.stringify(remoteTeaMessage(serialNumber, action)))
     state.paused = action === 'pause'
-    if (action === 'cancel') this.#endSession(state)
+    if (action === 'cancel') {
+      this.#endSession(state)
+      this.emit('brewEnded', serialNumber, 'cancelled')
+    }
     this.record(serialNumber, 'brewControl', action)
     this.emit('device', state)
     return true
@@ -211,16 +235,33 @@ export class DeviceHub extends EventEmitter {
         state.deviceStatus = content as DeviceStatus
         this.record(serialNumber, 'deviceStatus')
         break
-      case 'brewStatus':
-        state.brewStatus = content as BrewStatus
+      case 'brewStatus': {
+        const brew = content as BrewStatus
+        const wasBrewing = Boolean(state.brewStatus && state.brewStatus.remainingTotalTime > 0
+          && Date.now() - (state.brewStatusAt ?? 0) < BREW_STALE_MS)
+        const fromCommand = state.lastBrew !== null && Date.now() - state.lastBrew.sentAt < COMMAND_MATCH_MS
+        // A brew we did not start: someone pressed start at the Temial itself.
+        if (!wasBrewing && !fromCommand && brew?.remainingTotalTime > 0) {
+          this.emit('brewStarted', {
+            serialNumber,
+            name: 'An der Temial gestartet',
+            temperature: typeof brew.temperature === 'number' ? Math.round(brew.temperature) : null,
+            duration: brew.estimatedTimeBrewing ?? null,
+            volume: null,
+            source: 'device',
+          } satisfies BrewStart)
+        }
+        state.brewStatus = brew
         state.brewStatusAt = Date.now()
         this.record(serialNumber, 'brewStatus')
         break
+      }
       case 'brewingComplete':
         // Sent by the device when a brew ends; mark it finished right away instead of waiting for staleness.
         if (state.brewStatus) state.brewStatus = { ...state.brewStatus, remainingTotalTime: 0 }
         state.paused = false
         this.record(serialNumber, 'brewingComplete', content)
+        this.emit('brewEnded', serialNumber, 'done')
         break
       case 'messageCountRequest':
         break
