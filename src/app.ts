@@ -109,6 +109,16 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         return sendJson(res, 201, await presets.add(result.recipe))
       }
 
+      case 'PATCH /presets/:id': {
+        const { color } = ((await readJson(req)) ?? {}) as { color?: unknown }
+        if (color !== null && (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color))) {
+          throw new HttpError(400, 'Farbe muss wie #5aa846 aussehen (oder null für automatisch)')
+        }
+        const preset = await presets.setColor(segments[1], color ?? undefined)
+        if (!preset) throw new HttpError(404, 'Preset unbekannt')
+        return sendJson(res, 200, preset)
+      }
+
       case 'DELETE /presets/:id':
         if (!(await presets.remove(segments[1]))) throw new HttpError(404, 'Preset unbekannt')
         res.writeHead(204).end()

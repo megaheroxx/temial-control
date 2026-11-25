@@ -3,7 +3,8 @@ import { mkdir, readFile, rename, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import type { BrewRecipe } from './protocol.ts'
 
-export type Preset = BrewRecipe & { id: string }
+/** color: optional hex colour for the tile; without it the dashboard picks one from name and temperature. */
+export type Preset = BrewRecipe & { id: string, color?: string }
 
 const DEFAULT_PRESETS: BrewRecipe[] = [
   { name: 'Grüner Tee', temperature: 80, duration: 120, volume: 350, preWashTime: 0 },
@@ -41,6 +42,16 @@ export class PresetStore {
   async add(recipe: BrewRecipe): Promise<Preset> {
     const preset = { id: randomUUID(), ...recipe }
     this.#presets.push(preset)
+    await this.#save()
+    return preset
+  }
+
+  /** Sets or (with undefined) clears the colour of a preset. Returns null for an unknown id. */
+  async setColor(id: string, color: string | undefined): Promise<Preset | null> {
+    const preset = this.#presets.find((p) => p.id === id)
+    if (!preset) return null
+    if (color) preset.color = color
+    else delete preset.color
     await this.#save()
     return preset
   }

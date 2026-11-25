@@ -119,6 +119,24 @@ test('presets can be listed, added and removed', async () => {
   assert.equal((await list()).length, initial.length)
 })
 
+test('preset colour can be set and reset', async () => {
+  const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
+  const patch = (id: string, body: unknown) =>
+    fetch(`${base}/api/presets/${id}`, { method: 'PATCH', headers: auth, body: JSON.stringify(body) })
+
+  const coloured = await patch(preset.id, { color: '#8E4B8E' })
+  assert.equal(coloured.status, 200)
+  assert.equal((await coloured.json()).color, '#8E4B8E')
+  const stored = (await (await fetch(`${base}/api/presets`, { headers: auth })).json())[0]
+  assert.equal(stored.color, '#8E4B8E')
+
+  assert.equal((await patch(preset.id, { color: 'lila' })).status, 400)
+  assert.equal((await patch('unbekannt', { color: '#000000' })).status, 404)
+
+  const reset = await (await patch(preset.id, { color: null })).json()
+  assert.equal('color' in reset, false)
+})
+
 test('disconnect marks the device offline and brewing returns 409', async () => {
   device.close()
   await waitFor(() => app.hub.get(SERIAL)?.connected === false)

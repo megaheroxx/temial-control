@@ -47,6 +47,7 @@ const FORMATTERS = {
 }
 
 function teaColor(preset) {
+  if (preset.color) return preset.color
   const name = preset.name.toLowerCase()
   if (/grün|green|sencha|matcha|gyokuro/.test(name)) return '#5aa846'
   if (/weiß|white/.test(name)) return '#d9c98c'
@@ -198,6 +199,56 @@ function markSelectedTile() {
     button.setAttribute('aria-selected', String(button.dataset.id === id))
   }
   $('#delete-preset').hidden = !id
+  renderColors()
+}
+
+// --- Preset colours ---------------------------------------------------------
+
+const SWATCHES = ['#5aa846', '#8bb04a', '#d9c98c', '#c08a2d', '#7a4326', '#c4502f', '#8e4b8e', '#3f7fbf']
+
+function renderColors() {
+  const preset = presets.find((p) => p.id === form.elements.preset.value)
+  $('#tea-colors').hidden = !preset
+  if (!preset) return
+
+  const swatch = (label, color, value) => {
+    const button = el('button', { type: 'button', className: 'swatch', title: label })
+    button.setAttribute('role', 'radio')
+    button.setAttribute('aria-label', label)
+    button.setAttribute('aria-checked', String((preset.color ?? null) === value))
+    if (color) button.style.setProperty('--swatch', color)
+    else button.classList.add('auto')
+    button.addEventListener('click', () => setPresetColor(preset, value))
+    return button
+  }
+
+  const custom = el('label', { className: 'swatch custom', title: 'Eigene Farbe' })
+  const isCustom = preset.color && !SWATCHES.includes(preset.color.toLowerCase())
+  custom.setAttribute('aria-checked', String(Boolean(isCustom)))
+  if (isCustom) custom.style.setProperty('--swatch', preset.color)
+  const picker = el('input', { type: 'color', value: preset.color ?? teaColor(preset) })
+  picker.setAttribute('aria-label', 'Eigene Farbe wählen')
+  picker.addEventListener('change', () => setPresetColor(preset, picker.value))
+  custom.append(picker)
+
+  $('#swatches').replaceChildren(
+    swatch('Automatisch', null, null),
+    ...SWATCHES.map((color) => swatch(color, color, color)),
+    custom,
+  )
+}
+
+async function setPresetColor(preset, color) {
+  try {
+    const updated = await api(`/api/presets/${encodeURIComponent(preset.id)}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ color }),
+    })
+    presets = presets.map((p) => (p.id === updated.id ? updated : p))
+    renderPresets(updated.id)
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
 }
 
 const valueInput = (field) => $(`.slider-value[data-for="${field}"]`)
