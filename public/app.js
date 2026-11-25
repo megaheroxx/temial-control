@@ -200,10 +200,65 @@ function markSelectedTile() {
   $('#delete-preset').hidden = !id
 }
 
+const valueInput = (field) => $(`.slider-value[data-for="${field}"]`)
+
 function updateOutputs() {
   for (const field of FIELDS) {
-    $(`output[data-for="${field}"]`).textContent = FORMATTERS[field](form.elements[field].value)
+    const input = valueInput(field)
+    // Do not overwrite a value the user is typing.
+    if (input !== document.activeElement) input.value = FORMATTERS[field](form.elements[field].value)
   }
+}
+
+// --- Typed values next to the sliders ---------------------------------------
+
+function parseInteger(text) {
+  const value = Number.parseInt(text.replace(/[^\d]/g, ''), 10)
+  return Number.isFinite(value) ? value : null
+}
+
+/** "2" → 2 min, "2,5" → 2:30, "2:30" → 2:30; returns seconds. */
+function parseMinutes(text) {
+  const clock = text.trim().match(/^(\d+):(\d{1,2})/)
+  if (clock) return Number(clock[1]) * 60 + Number(clock[2])
+  const minutes = Number.parseFloat(text.replace(',', '.').replace(/[^\d.]/g, ''))
+  return Number.isFinite(minutes) ? Math.round(minutes * 60) : null
+}
+
+const EDITORS = {
+  temperature: { toText: String, parse: parseInteger },
+  duration: { toText: (s) => (s / 60).toLocaleString('de-DE', { maximumFractionDigits: 2 }), parse: parseMinutes },
+  volume: { toText: String, parse: parseInteger },
+  preWashTime: { toText: String, parse: parseInteger },
+}
+
+for (const field of FIELDS) {
+  const input = valueInput(field)
+  const slider = form.elements[field]
+  // Range inputs clamp to min/max on their own.
+  const apply = () => {
+    const value = EDITORS[field].parse(input.value)
+    if (value !== null) slider.value = String(value)
+  }
+  input.addEventListener('focus', () => {
+    input.value = EDITORS[field].toText(Number(slider.value))
+    input.select()
+  })
+  input.addEventListener('input', (event) => {
+    event.stopPropagation()
+    apply()
+  })
+  input.addEventListener('keydown', (event) => {
+    // Enter would otherwise submit the form and start brewing.
+    if (event.key === 'Enter') {
+      event.preventDefault()
+      input.blur()
+    }
+  })
+  input.addEventListener('blur', () => {
+    apply()
+    updateOutputs()
+  })
 }
 
 // --- Log & messages ---------------------------------------------------------

@@ -53,19 +53,19 @@
 
         <div class="sliders">
           <label class="slider">
-            <span>Temperatur</span><output data-for="temperature"></output>
+            <span>Temperatur</span><input class="slider-value" data-for="temperature" inputmode="numeric" enterkeyhint="done" aria-label="Temperatur in °C">
             <input name="temperature" type="range" min="40" max="100" step="1" value="90" required>
           </label>
           <label class="slider">
-            <span>Ziehzeit</span><output data-for="duration"></output>
+            <span>Ziehzeit</span><input class="slider-value" data-for="duration" inputmode="decimal" enterkeyhint="done" aria-label="Ziehzeit in Minuten">
             <input name="duration" type="range" min="10" max="1800" step="1" value="180" required>
           </label>
           <label class="slider">
-            <span>Menge</span><output data-for="volume"></output>
+            <span>Menge</span><input class="slider-value" data-for="volume" inputmode="numeric" enterkeyhint="done" aria-label="Menge in ml">
             <input name="volume" type="range" min="50" max="1000" step="1" value="350" required>
           </label>
           <label class="slider">
-            <span>Vorspülen</span><output data-for="preWashTime"></output>
+            <span>Vorspülen</span><input class="slider-value" data-for="preWashTime" inputmode="numeric" enterkeyhint="done" aria-label="Vorspülen in Sekunden">
             <input name="preWashTime" type="range" min="0" max="60" step="1" value="10" required>
           </label>
         </div>

@@ -313,8 +313,29 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
   border-radius: 14px;
 }
 .slider > span { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
-.slider output { font-weight: 700; font-variant-numeric: tabular-nums; }
 .slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 6px 0 2px; }
+/* Tappable value: shows "2:00 min", becomes a number field while editing. */
+.slider input.slider-value {
+  grid-column: auto;
+  width: 9.5ch;
+  margin: 0;
+  padding: 2px 4px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-bottom: 1.5px dashed var(--muted);
+  border-radius: 0;
+  cursor: text;
+}
+.slider input.slider-value:focus {
+  outline: none;
+  background: var(--surface);
+  border-bottom: 2px solid var(--accent);
+  border-radius: 6px 6px 0 0;
+}
 
 input[type=range] { -webkit-appearance: none; appearance: none; height: 26px; background: transparent; cursor: pointer; }
 input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px; background: var(--border); }
