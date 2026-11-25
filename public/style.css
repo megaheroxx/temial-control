@@ -314,27 +314,26 @@ input:focus-visible, select:focus-visible, button:focus-visible, summary:focus-v
 }
 .slider > span { font-size: 0.85rem; font-weight: 600; color: var(--muted); }
 .slider input { grid-column: 1 / -1; width: 100%; accent-color: var(--accent); margin: 6px 0 2px; }
-/* Tappable value: shows "2:00 min", becomes a number field while editing. */
+/* Tappable value: a small, subtle field that becomes editable on tap. */
 .slider input.slider-value {
   grid-column: auto;
-  width: 9.5ch;
+  width: 10ch;
   margin: 0;
-  padding: 2px 4px;
+  padding: 4px 10px;
   text-align: right;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--text);
-  background: transparent;
-  border: 0;
-  border-bottom: 1.5px dashed var(--muted);
-  border-radius: 0;
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid color-mix(in srgb, var(--text) 12%, transparent);
+  border-radius: 10px;
   cursor: text;
 }
 .slider input.slider-value:focus {
   outline: none;
   background: var(--surface);
-  border-bottom: 2px solid var(--accent);
-  border-radius: 6px 6px 0 0;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 input[type=range] { -webkit-appearance: none; appearance: none; height: 26px; background: transparent; cursor: pointer; }
