@@ -7,7 +7,9 @@ import { DeviceHub, type BrewStart, type DeviceState, type LogEntry } from './de
 import { HistoryStore } from './history.ts'
 import { baseHostCandidates } from './network.ts'
 import { PresetStore } from './presets.ts'
-import { BREW_ACTIONS, DEFAULT_START_DELAY, MAX_START_DELAY, type BrewAction } from './protocol.ts'
+import {
+  BREW_ACTIONS, DEFAULT_START_DELAY, DEFAULT_TEA_COLOR, MANUAL_TEA, MAX_START_DELAY, TEA_ID_PRESET, type BrewAction,
+} from './protocol.ts'
 import { DeviceSetup, SECURITY_TYPES, SetupError, validateConfigure, type SetupTarget } from './setup.ts'
 import { LIMITS, validateRecipe } from './validation.ts'
 
@@ -106,13 +108,21 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         const result = validateRecipe(body)
         if (!result.ok) return sendJson(res, 400, { error: result.errors.join(', ') })
         // Optional timer: seconds until the device should start brewing.
-        const { startInSeconds = DEFAULT_START_DELAY } = (body ?? {}) as { startInSeconds?: unknown }
+        const { startInSeconds = DEFAULT_START_DELAY, presetId, color } = (body ?? {}) as Record<string, unknown>
         if (typeof startInSeconds !== 'number' || !Number.isInteger(startInSeconds)
           || startInSeconds < 0 || startInSeconds > MAX_START_DELAY) {
           throw new HttpError(400, `startInSeconds muss zwischen 0 und ${MAX_START_DELAY} liegen`)
         }
+        if (color !== undefined && (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color))) {
+          throw new HttpError(400, 'color muss wie #5aa846 aussehen')
+        }
+        // Brewing a saved preset: the device shows its name and colour instead of "Manual tea".
+        const preset = typeof presetId === 'string' ? presets.get(presetId) : undefined
+        const display = preset
+          ? { teaId: TEA_ID_PRESET, color: (color as string | undefined) ?? preset.color ?? DEFAULT_TEA_COLOR }
+          : MANUAL_TEA
         if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
-        if (!hub.brew(segments[1], result.recipe, startInSeconds)) throw new HttpError(409, 'Gerät ist nicht verbunden')
+        if (!hub.brew(segments[1], result.recipe, startInSeconds, display)) throw new HttpError(409, 'Gerät ist nicht verbunden')
         return sendJson(res, 202, { sent: true })
       }
 

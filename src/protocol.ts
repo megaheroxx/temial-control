@@ -78,6 +78,16 @@ export type InfusionStep = { index: number, total: number }
 export const DEFAULT_START_DELAY = 10
 export const MAX_START_DELAY = 24 * 60 * 60
 
+/**
+ * How the device labels a brew. The original app sent teaId -20 for a manually set tea (shown as
+ * "Manual tea") and -30 for one of the user's own saved presets, together with the preset colour.
+ */
+export type TeaDisplay = { teaId: number, color: string }
+export const TEA_ID_MANUAL = -20
+export const TEA_ID_PRESET = -30
+export const DEFAULT_TEA_COLOR = '#b1b2b3'
+export const MANUAL_TEA: TeaDisplay = { teaId: TEA_ID_MANUAL, color: DEFAULT_TEA_COLOR }
+
 export type DeviceMessage = {
   op: string
   serialNumber: string
@@ -158,20 +168,21 @@ export function brewTeaMessage(
   recipe: BrewRecipe,
   step: InfusionStep = { index: 0, total: 1 },
   startInSeconds = DEFAULT_START_DELAY,
+  display: TeaDisplay = MANUAL_TEA,
 ) {
   // The device only knows the fields of a single infusion.
   const { infusions: _infusions, ...fields } = recipe
   return envelope(deviceId, 'brewTea', {
     ...fields,
     changeDate: Date.now(),
-    color: '#b1b2b3',
+    color: display.color,
     description: 'tea description',
     increment: step.index,
     increments: step.total,
     presetId: 0,
     qrCode: null,
     startInSeconds,
-    teaId: -20,
+    teaId: display.teaId,
     timerId: 0,
     uniqueId: 123,
     userId: 0,

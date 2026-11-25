@@ -271,6 +271,34 @@ test('brews can be scheduled with a timer', async () => {
   assert.equal(app.hub.get(SERIAL)?.scheduled, null)
 })
 
+test('brewing a saved preset shows its name and colour on the device', async () => {
+  const preset = await (await fetch(`${base}/api/presets`, {
+    method: 'POST', headers: auth, body: JSON.stringify({ ...recipe, name: 'Mein Sencha', infusions: [{ temperature: 85, duration: 150 }] }),
+  })).json()
+  const brew = (body: unknown) => fetch(`${base}/api/devices/${SERIAL}/brew`, { method: 'POST', headers: auth, body: JSON.stringify(body) })
+
+  let received = nextMessage(device)
+  await brew({ ...preset, presetId: preset.id, color: '#8e4b8e' })
+  let message = await received
+  assert.partialDeepStrictEqual(message.content, { name: 'Mein Sencha', teaId: -30, color: '#8e4b8e' })
+
+  // The next infusion keeps the preset label.
+  received = nextMessage(device)
+  await fetch(`${base}/api/devices/${SERIAL}/infusion`, { method: 'POST', headers: auth, body: JSON.stringify({ action: 'next' }) })
+  message = await received
+  assert.partialDeepStrictEqual(message.content, { teaId: -30, color: '#8e4b8e', increment: 1 })
+
+  // Manual brews and unknown presets stay "Manual tea".
+  for (const body of [recipe, { ...recipe, presetId: 'unbekannt' }]) {
+    received = nextMessage(device)
+    await brew(body)
+    message = await received
+    assert.partialDeepStrictEqual(message.content, { teaId: -20, color: '#b1b2b3' })
+  }
+  assert.equal((await brew({ ...recipe, presetId: preset.id, color: 'lila' })).status, 400)
+  await fetch(`${base}/api/presets/${preset.id}`, { method: 'DELETE', headers: auth })
+})
+
 test('preset colour can be set and reset', async () => {
   const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
   const patch = (id: string, body: unknown) =>

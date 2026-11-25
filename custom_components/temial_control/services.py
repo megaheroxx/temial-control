@@ -51,6 +51,8 @@ BREW_PRESET_SCHEMA = vol.Schema(
 def recipe_from_preset(preset: dict[str, Any]) -> dict[str, Any]:
     """Build the API recipe from a preset returned by the app."""
     recipe = {key: preset[key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}
+    # Lets the Temial show the preset's name instead of "Manual tea".
+    recipe["presetId"] = preset["id"]
     # Further infusions start a multi-infusion brew; the next ones are started from the app.
     if preset.get("infusions"):
         recipe["infusions"] = preset["infusions"]

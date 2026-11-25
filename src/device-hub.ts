@@ -4,7 +4,7 @@ import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
 import {
   bindStatusMessage, brewTeaMessage, parseDeviceMessage, remoteTeaMessage,
-  DEFAULT_START_DELAY, type BindContent, type BrewAction, type InfusionStep, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
+  DEFAULT_START_DELAY, MANUAL_TEA, type BindContent, type TeaDisplay, type BrewAction, type InfusionStep, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
 } from './protocol.ts'
 
 export type DeviceState = {
@@ -62,8 +62,8 @@ export class DeviceHub extends EventEmitter {
   readonly #devices = new Map<string, DeviceState>()
   readonly #sockets = new Map<string, WebSocket>()
   readonly #log: LogEntry[] = []
-  /** Full recipes of running multi-infusion brews, keyed by serial number. */
-  readonly #sessions = new Map<string, BrewRecipe>()
+  /** Full recipes (and how the device labels them) of running multi-infusion brews, keyed by serial number. */
+  readonly #sessions = new Map<string, { recipe: BrewRecipe, display: TeaDisplay }>()
 
   constructor() {
     super()
@@ -87,23 +87,23 @@ export class DeviceHub extends EventEmitter {
   }
 
   /** Sends a brew command (first infusion of the recipe). Returns false if the device is not connected. */
-  brew(serialNumber: string, recipe: BrewRecipe, startInSeconds = DEFAULT_START_DELAY): boolean {
+  brew(serialNumber: string, recipe: BrewRecipe, startInSeconds = DEFAULT_START_DELAY, display = MANUAL_TEA): boolean {
     const total = 1 + (recipe.infusions?.length ?? 0)
-    if (!this.#sendBrew(serialNumber, recipe, { index: 0, total }, startInSeconds)) return false
-    if (total > 1) this.#sessions.set(serialNumber, recipe)
+    if (!this.#sendBrew(serialNumber, recipe, { index: 0, total }, startInSeconds, display)) return false
+    if (total > 1) this.#sessions.set(serialNumber, { recipe, display })
     else this.#sessions.delete(serialNumber)
     return true
   }
 
   /** Starts the next infusion of a multi-infusion brew. */
   nextInfusion(serialNumber: string): 'sent' | 'no-session' | 'not-connected' {
-    const recipe = this.#sessions.get(serialNumber)
+    const { recipe, display } = this.#sessions.get(serialNumber) ?? {}
     const session = this.#devices.get(serialNumber)?.session
     if (!recipe || !session || session.index + 1 >= session.total) return 'no-session'
     const index = session.index + 1
     const step = recipe.infusions![index - 1]
     const infusion = { ...recipe, temperature: step.temperature, duration: step.duration, preWashTime: 0 }
-    return this.#sendBrew(serialNumber, infusion, { index, total: session.total }) ? 'sent' : 'not-connected'
+    return this.#sendBrew(serialNumber, infusion, { index, total: session.total }, DEFAULT_START_DELAY, display) ? 'sent' : 'not-connected'
   }
 
   /** Ends a multi-infusion brew; the original app sent remoteTea "done" here. */
@@ -118,12 +118,18 @@ export class DeviceHub extends EventEmitter {
     return true
   }
 
-  #sendBrew(serialNumber: string, recipe: BrewRecipe, step: InfusionStep, startInSeconds = DEFAULT_START_DELAY): boolean {
+  #sendBrew(
+    serialNumber: string,
+    recipe: BrewRecipe,
+    step: InfusionStep,
+    startInSeconds = DEFAULT_START_DELAY,
+    display = MANUAL_TEA,
+  ): boolean {
     const ws = this.#sockets.get(serialNumber)
     const state = this.#devices.get(serialNumber)
     if (!ws || !state?.connected) return false
 
-    ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe, step, startInSeconds)))
+    ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe, step, startInSeconds, display)))
     const startsAt = Date.now() + startInSeconds * 1000
     state.scheduled = startInSeconds > DEFAULT_START_DELAY ? { name: recipe.name, startsAt } : null
     const { infusions: _infusions, ...single } = recipe

@@ -74,7 +74,7 @@ async def test_button_brews_preset(hass: HomeAssistant, aioclient_mock: AiohttpC
     await hass.services.async_call("button", "press", {"entity_id": f"button.{PREFIX}_brew_assam"}, blocking=True)
 
     assert brew_payloads(aioclient_mock) == [
-        {"name": "Assam", "temperature": 95, "duration": 240, "volume": 400, "preWashTime": 10}
+        {"name": "Assam", "temperature": 95, "duration": 240, "volume": 400, "preWashTime": 10, "presetId": "p2"}
     ]
 
 
@@ -114,7 +114,7 @@ async def test_brew_preset_action(hass: HomeAssistant, aioclient_mock: AiohttpCl
         DOMAIN, "brew_preset", {"device_id": device_id(hass), "preset": "sencha"}, blocking=True
     )
     assert brew_payloads(aioclient_mock) == [
-        {key: PRESETS[0][key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}
+        {**{key: PRESETS[0][key] for key in ("name", "temperature", "duration", "volume", "preWashTime")}, "presetId": "p1"}
     ]
 
     with pytest.raises(ServiceValidationError, match="Vorhanden: Sencha, Assam"):
@@ -131,7 +131,7 @@ async def test_brew_preset_with_timer(hass: HomeAssistant, aioclient_mock: Aioht
         DOMAIN, "brew_preset", {"device_id": device_id(hass), "preset": "Assam", "start_in_minutes": 30}, blocking=True
     )
     assert brew_payloads(aioclient_mock) == [
-        {"name": "Assam", "temperature": 95, "duration": 240, "volume": 400, "preWashTime": 10, "startInSeconds": 1800}
+        {"name": "Assam", "temperature": 95, "duration": 240, "volume": 400, "preWashTime": 10, "presetId": "p2", "startInSeconds": 1800}
     ]
 
 

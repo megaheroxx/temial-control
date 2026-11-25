@@ -100,7 +100,7 @@ Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage d
 | Methode | Pfad | Beschreibung |
 |---|---|---|
 | `GET` | `/api/devices` | Alle bekannten Geräte mit letztem Status |
-| `POST` | `/api/devices/:serial/brew` | Brühen. Body: `{ name, temperature, duration, volume, preWashTime }`, optional `infusions: [{ temperature, duration }, …]` für weitere Aufgüsse (insgesamt bis zu 5) und `startInSeconds` für einen Timer (Standard 10, höchstens 86400) |
+| `POST` | `/api/devices/:serial/brew` | Brühen. Body: `{ name, temperature, duration, volume, preWashTime }`, optional `infusions: [{ temperature, duration }, …]` für weitere Aufgüsse (insgesamt bis zu 5) und `startInSeconds` für einen Timer (Standard 10, höchstens 86400). Mit `presetId` (und optional `color`) zeigt die Temial den Namen des Presets statt „Manual tea“ |
 | `POST` | `/api/devices/:serial/infusion` | Mehrere Aufgüsse: `{ "action": "next" }` startet den nächsten, `{ "action": "done" }` beendet die Zubereitung |
 | `POST` | `/api/devices/:serial/control` | Laufendes Brühen steuern. Body: `{ "action": "cancel" }`, `"pause"` oder `"resume"` |
 | `GET` | `/api/stats` | Statistik: Tassen heute, diese Woche, insgesamt, Liter, letzte 7 Tage, Lieblingstees |

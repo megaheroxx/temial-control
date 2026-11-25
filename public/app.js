@@ -544,6 +544,12 @@ form.addEventListener('submit', async (event) => {
   try {
     const body = readRecipe()
     if (start) body.startInSeconds = Math.round((start - Date.now()) / 1000)
+    // A saved preset lets the Temial show its name and colour instead of "Manual tea".
+    const preset = presets.find((p) => p.id === form.elements.preset.value)
+    if (preset) {
+      body.presetId = preset.id
+      body.color = teaColor(preset)
+    }
     await api(`/api/devices/${encodeURIComponent(serial)}/brew`, {
       method: 'POST',
       body: JSON.stringify(body),
