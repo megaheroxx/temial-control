@@ -46,12 +46,19 @@ export class PresetStore {
     return preset
   }
 
-  /** Sets or (with undefined) clears the colour of a preset. Returns null for an unknown id. */
-  async setColor(id: string, color: string | undefined): Promise<Preset | null> {
-    const preset = this.#presets.find((p) => p.id === id)
-    if (!preset) return null
-    if (color) preset.color = color
-    else delete preset.color
+  get(id: string): Preset | undefined {
+    return this.#presets.find((preset) => preset.id === id)
+  }
+
+  /**
+   * Replaces recipe values and colour of a preset (colour undefined = automatic).
+   * Returns null for an unknown id.
+   */
+  async update(id: string, recipe: BrewRecipe, color: string | undefined): Promise<Preset | null> {
+    const index = this.#presets.findIndex((preset) => preset.id === id)
+    if (index < 0) return null
+    const preset: Preset = { id, ...recipe, ...(color ? { color } : {}) }
+    this.#presets[index] = preset
     await this.#save()
     return preset
   }

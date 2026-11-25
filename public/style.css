@@ -483,3 +483,4 @@ a.button.primary { display: block; text-align: center; text-decoration: none; ba
 .brew-actions { display: flex; gap: 10px; }
 .brew-actions[hidden] { display: none; }
 .brew-actions button { flex: 1; }
+button.link.accent { color: var(--accent-strong); }

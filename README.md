@@ -100,7 +100,7 @@ Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage d
 | `POST` | `/api/devices/:serial/control` | Laufendes Brühen steuern. Body: `{ "action": "cancel" }`, `"pause"` oder `"resume"` |
 | `GET` | `/api/presets` | Presets auflisten |
 | `POST` | `/api/presets` | Preset anlegen (gleicher Body wie beim Brühen) |
-| `PATCH` | `/api/presets/:id` | Farbe der Kachel ändern. Body: `{ "color": "#8e4b8e" }`, `null` = automatisch |
+| `PATCH` | `/api/presets/:id` | Preset ändern, alle Felder optional: `name`, `temperature`, `duration`, `volume`, `preWashTime`, `color` (`null` = automatische Farbe) |
 | `DELETE` | `/api/presets/:id` | Preset löschen |
 | `GET` | `/api/config` | Erlaubte Wertebereiche |
 | `GET` | `/api/events` | Server-Sent Events: `snapshot`, `device`, `log` |

@@ -221,6 +221,15 @@ function markSelectedTile() {
   }
   $('#delete-preset').hidden = !id
   renderColors()
+  updateDirty()
+}
+
+/** Shows "Änderungen speichern" while the form differs from the selected preset. */
+function updateDirty() {
+  const preset = presets.find((p) => p.id === form.elements.preset.value)
+  const recipe = readRecipe()
+  const dirty = Boolean(preset) && ['name', ...FIELDS].some((key) => recipe[key] !== preset[key])
+  $('#update-preset').hidden = !dirty
 }
 
 // --- Preset colours ---------------------------------------------------------
@@ -330,6 +339,7 @@ for (const field of FIELDS) {
   input.addEventListener('blur', () => {
     apply()
     updateOutputs()
+    updateDirty()
   })
 }
 
@@ -357,7 +367,10 @@ function readRecipe() {
   return recipe
 }
 
-form.addEventListener('input', updateOutputs)
+form.addEventListener('input', () => {
+  updateOutputs()
+  updateDirty()
+})
 
 form.elements.preset.addEventListener('change', () => {
   markSelectedTile()
@@ -366,6 +379,7 @@ form.elements.preset.addEventListener('change', () => {
   form.elements.name.value = preset.name
   for (const field of FIELDS) form.elements[field].value = preset[field]
   updateOutputs()
+  updateDirty()
 })
 
 form.addEventListener('submit', async (event) => {
@@ -382,8 +396,22 @@ form.addEventListener('submit', async (event) => {
   }
 })
 
+$('#update-preset').addEventListener('click', async () => {
+  const id = form.elements.preset.value
+  // Only the name matters for a preset; the device picker may be empty while the Temial is offline.
+  if (!id || !form.elements.name.reportValidity()) return
+  try {
+    const updated = await api(`/api/presets/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(readRecipe()) })
+    presets = presets.map((p) => (p.id === updated.id ? updated : p))
+    renderPresets(updated.id)
+    showMessage(`Preset „${updated.name}“ aktualisiert.`, 'success')
+  } catch (err) {
+    showMessage(err.message, 'error')
+  }
+})
+
 $('#save-preset').addEventListener('click', async () => {
-  if (!form.reportValidity()) return
+  if (!form.elements.name.reportValidity()) return
   try {
     const preset = await api('/api/presets', { method: 'POST', body: JSON.stringify(readRecipe()) })
     presets.push(preset)

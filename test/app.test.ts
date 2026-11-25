@@ -160,6 +160,26 @@ test('preset colour can be set and reset', async () => {
   assert.equal('color' in reset, false)
 })
 
+test('preset values can be edited without touching the rest', async () => {
+  const created = await (await fetch(`${base}/api/presets`, { method: 'POST', headers: auth, body: JSON.stringify(recipe) })).json()
+  const patch = (body: unknown) =>
+    fetch(`${base}/api/presets/${created.id}`, { method: 'PATCH', headers: auth, body: JSON.stringify(body) })
+
+  await patch({ color: '#3f7fbf' })
+  const edited = await patch({ name: 'Sencha kräftig', temperature: 85 })
+  assert.equal(edited.status, 200)
+  assert.deepEqual(await edited.json(), {
+    id: created.id, name: 'Sencha kräftig', temperature: 85, duration: 120, volume: 300, preWashTime: 0, color: '#3f7fbf',
+  })
+
+  const invalid = await patch({ temperature: 150 })
+  assert.equal(invalid.status, 400)
+  const stored = (await (await fetch(`${base}/api/presets`, { headers: auth })).json()).find((p: { id: string }) => p.id === created.id)
+  assert.equal(stored.temperature, 85, 'rejected update must not change the preset')
+
+  await fetch(`${base}/api/presets/${created.id}`, { method: 'DELETE', headers: auth })
+})
+
 test('disconnect marks the device offline and brewing returns 409', async () => {
   device.close()
   await waitFor(() => app.hub.get(SERIAL)?.connected === false)

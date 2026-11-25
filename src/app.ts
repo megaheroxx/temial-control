@@ -32,6 +32,7 @@ const STATIC_FILES: Record<string, [file: string, type: string]> = {
   '/vendor/jsQR.js': ['node_modules/jsqr/dist/jsQR.js', JS],
 }
 const MAX_BODY = 10_000
+const RECIPE_KEYS = ['name', 'temperature', 'duration', 'volume', 'preWashTime'] as const
 const SSE_KEEPALIVE_MS = 25_000
 
 class HttpError extends Error {
@@ -121,13 +122,24 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
       }
 
       case 'PATCH /presets/:id': {
-        const { color } = ((await readJson(req)) ?? {}) as { color?: unknown }
-        if (color !== null && (typeof color !== 'string' || !/^#[0-9a-f]{6}$/i.test(color))) {
-          throw new HttpError(400, 'Farbe muss wie #5aa846 aussehen (oder null für automatisch)')
+        // Partial update: any of name, temperature, duration, volume, preWashTime and color.
+        const body = ((await readJson(req)) ?? {}) as Record<string, unknown>
+        const current = presets.get(segments[1])
+        if (!current) throw new HttpError(404, 'Preset unbekannt')
+
+        let color = current.color
+        if ('color' in body) {
+          const value = body.color
+          if (value !== null && (typeof value !== 'string' || !/^#[0-9a-f]{6}$/i.test(value))) {
+            throw new HttpError(400, 'Farbe muss wie #5aa846 aussehen (oder null für automatisch)')
+          }
+          color = value ?? undefined
         }
-        const preset = await presets.setColor(segments[1], color ?? undefined)
-        if (!preset) throw new HttpError(404, 'Preset unbekannt')
-        return sendJson(res, 200, preset)
+
+        const { id: _id, color: _color, ...recipe } = current
+        const result = validateRecipe({ ...recipe, ...pick(body, RECIPE_KEYS) })
+        if (!result.ok) return sendJson(res, 400, { error: result.errors.join(', ') })
+        return sendJson(res, 200, await presets.update(current.id, result.recipe, color))
       }
 
       case 'DELETE /presets/:id':
@@ -193,6 +205,10 @@ function isAuthorized(req: IncomingMessage, url: URL, token: string): boolean {
   const a = Buffer.from(given)
   const b = Buffer.from(token)
   return a.length === b.length && timingSafeEqual(a, b)
+}
+
+function pick(source: Record<string, unknown>, keys: readonly string[]): Record<string, unknown> {
+  return Object.fromEntries(keys.filter((key) => key in source).map((key) => [key, source[key]]))
 }
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
