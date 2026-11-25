@@ -97,6 +97,7 @@ Alle Routen liegen unter `/api`. Ist `APP_TOKEN` gesetzt, braucht jede Anfrage d
 |---|---|---|
 | `GET` | `/api/devices` | Alle bekannten Geräte mit letztem Status |
 | `POST` | `/api/devices/:serial/brew` | Brühen. Body: `{ name, temperature, duration, volume, preWashTime }` |
+| `POST` | `/api/devices/:serial/control` | Laufendes Brühen steuern. Body: `{ "action": "cancel" }`, `"pause"` oder `"resume"` |
 | `GET` | `/api/presets` | Presets auflisten |
 | `POST` | `/api/presets` | Preset anlegen (gleicher Body wie beim Brühen) |
 | `PATCH` | `/api/presets/:id` | Farbe der Kachel ändern. Body: `{ "color": "#8e4b8e" }`, `null` = automatisch |
@@ -203,7 +204,7 @@ Die Entity-IDs hängen von Seriennummer und Sprache ab. Du findest sie auf der G
 ## Bekannte Grenzen
 
 - Was die Zahlenwerte `deviceState`, `activityState` und `phase` bedeuten, ist nicht dokumentiert. Das Dashboard zeigt sie roh an.
-- Einen Befehl zum Abbrechen, Reinigen oder Entkalken gibt es im Freemial-Protokoll bisher nicht.
+- Abbrechen, Pausieren und Fortsetzen nutzen den Befehl `remoteTea` der Original-App von Vorwerk. Reinigen und Entkalken sind weiterhin nicht bekannt.
 - Die Wertebereiche in [src/validation.ts](src/validation.ts) sind vorsichtig gewählt. Die echten Grenzen des Geräts sind unbekannt.
 - Der Gerätestatus liegt nur im Speicher und ist nach einem Neustart leer, bis sich die Temial wieder meldet.
 

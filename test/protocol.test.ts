@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { test } from 'node:test'
-import { bindStatusMessage, brewTeaMessage, parseDeviceMessage } from '../src/protocol.ts'
+import { bindStatusMessage, brewTeaMessage, parseDeviceMessage, remoteTeaMessage } from '../src/protocol.ts'
 import { validateRecipe } from '../src/validation.ts'
 
 test('parseDeviceMessage extracts op and serial number', () => {
@@ -23,6 +23,13 @@ test('brewTeaMessage addresses the device and carries the recipe', () => {
   assert.equal(message.senderId, 'broker://device')
   assert.equal(message.durable, true)
   assert.partialDeepStrictEqual(message.content, { ...recipe, teaId: -20, startInSeconds: 10 })
+})
+
+test('remoteTeaMessage carries the brew action like the original app', () => {
+  const message = remoteTeaMessage('12345', 'cancel')
+  assert.equal(message.op, 'remoteTea')
+  assert.equal(message.receiverId, 'device://12345')
+  assert.deepEqual(message.content, { action: 'cancel', userId: 0 })
 })
 
 test('bindStatusMessage confirms the pairing code', () => {

@@ -3,8 +3,8 @@ import type { IncomingMessage } from 'node:http'
 import type { Duplex } from 'node:stream'
 import { WebSocketServer, type WebSocket } from 'ws'
 import {
-  bindStatusMessage, brewTeaMessage, parseDeviceMessage,
-  type BindContent, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
+  bindStatusMessage, brewTeaMessage, parseDeviceMessage, remoteTeaMessage,
+  type BindContent, type BrewAction, type BrewRecipe, type BrewStatus, type DeviceStatus, type VersionInfo,
 } from './protocol.ts'
 
 export type DeviceState = {
@@ -17,6 +17,8 @@ export type DeviceState = {
   brewStatusAt: number | null
   versions: VersionInfo | null
   lastBrew: (BrewRecipe & { sentAt: number }) | null
+  /** Set by our own pause/resume commands; the device's paused state is not known. */
+  paused: boolean
 }
 
 export type LogEntry = {
@@ -68,7 +70,21 @@ export class DeviceHub extends EventEmitter {
 
     ws.send(JSON.stringify(brewTeaMessage(serialNumber, recipe)))
     state.lastBrew = { ...recipe, sentAt: Date.now() }
+    state.paused = false
     this.record(serialNumber, 'brewCommand', recipe)
+    this.emit('device', state)
+    return true
+  }
+
+  /** Cancels, pauses or resumes the running brew. Returns false if the device is not connected. */
+  control(serialNumber: string, action: BrewAction): boolean {
+    const ws = this.#sockets.get(serialNumber)
+    const state = this.#devices.get(serialNumber)
+    if (!ws || !state?.connected) return false
+
+    ws.send(JSON.stringify(remoteTeaMessage(serialNumber, action)))
+    state.paused = action === 'pause'
+    this.record(serialNumber, 'brewControl', action)
     this.emit('device', state)
     return true
   }
@@ -157,6 +173,12 @@ export class DeviceHub extends EventEmitter {
         state.brewStatusAt = Date.now()
         this.record(serialNumber, 'brewStatus')
         break
+      case 'brewingComplete':
+        // Sent by the device when a brew ends; mark it finished right away instead of waiting for staleness.
+        if (state.brewStatus) state.brewStatus = { ...state.brewStatus, remainingTotalTime: 0 }
+        state.paused = false
+        this.record(serialNumber, 'brewingComplete', content)
+        break
       case 'messageCountRequest':
         break
       default:
@@ -179,6 +201,7 @@ export class DeviceHub extends EventEmitter {
         brewStatusAt: null,
         versions: null,
         lastBrew: null,
+        paused: false,
       }
       this.#devices.set(serialNumber, state)
     }

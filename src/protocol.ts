@@ -122,6 +122,18 @@ export function bindStatusMessage(deviceId: string, code: string, state: 'BOUND'
   })
 }
 
+/**
+ * Actions for a running brew. Names and message shape come from the original Vorwerk app
+ * (RemoteTeaMessage / Device.Action); the cloud forwarded app messages to the device unchanged.
+ */
+export const BREW_ACTIONS = ['cancel', 'pause', 'resume'] as const
+export type BrewAction = typeof BREW_ACTIONS[number]
+
+export function remoteTeaMessage(deviceId: string, action: BrewAction) {
+  // userId 0 matches the userId our brewTea messages use.
+  return envelope(deviceId, 'remoteTea', { action, userId: 0 })
+}
+
 export function brewTeaMessage(deviceId: string, recipe: BrewRecipe) {
   return envelope(deviceId, 'brewTea', {
     ...recipe,

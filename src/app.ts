@@ -6,6 +6,7 @@ import { join } from 'node:path'
 import { DeviceHub, type DeviceState, type LogEntry } from './device-hub.ts'
 import { baseHostCandidates } from './network.ts'
 import { PresetStore } from './presets.ts'
+import { BREW_ACTIONS, type BrewAction } from './protocol.ts'
 import { DeviceSetup, SECURITY_TYPES, SetupError, validateConfigure, type SetupTarget } from './setup.ts'
 import { LIMITS, validateRecipe } from './validation.ts'
 
@@ -97,6 +98,16 @@ export async function createApp({ dataDir, token, baseHost, setupTarget }: AppOp
         if (!result.ok) return sendJson(res, 400, { error: result.errors.join(', ') })
         if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
         if (!hub.brew(segments[1], result.recipe)) throw new HttpError(409, 'Gerät ist nicht verbunden')
+        return sendJson(res, 202, { sent: true })
+      }
+
+      case 'POST /devices/:id/control': {
+        const { action } = ((await readJson(req)) ?? {}) as { action?: unknown }
+        if (typeof action !== 'string' || !(BREW_ACTIONS as readonly string[]).includes(action)) {
+          throw new HttpError(400, `action muss eins von ${BREW_ACTIONS.join(', ')} sein`)
+        }
+        if (!hub.get(segments[1])) throw new HttpError(404, 'Gerät unbekannt')
+        if (!hub.control(segments[1], action as BrewAction)) throw new HttpError(409, 'Gerät ist nicht verbunden')
         return sendJson(res, 202, { sent: true })
       }
 

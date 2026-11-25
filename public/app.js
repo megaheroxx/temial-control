@@ -127,11 +127,21 @@ function renderDevice(state) {
   if (state.connected && isBrewing(state)) {
     const brew = state.brewStatus
     const stats = [
-      ['Tee', state.lastBrew?.name ?? `#${brew.teaId}`],
+      ['Tee', state.lastBrew?.name ?? (brew.teaId === -20 ? 'Eigener Tee' : `Tee Nr. ${brew.teaId}`)],
       ['Temperatur', formatTemperature(brew.temperature)],
       ['Gepumpt', `${Math.round(Number(brew.pumpedVolume))} ml`],
       ['Phase', String(brew.phase)],
     ]
+    const actions = $('.brew-actions', card)
+    actions.hidden = false
+    const pause = $('.pause-button', card)
+    pause.textContent = state.paused ? 'Fortsetzen' : 'Pausieren'
+    pause.addEventListener('click', () => controlBrew(state.serialNumber, state.paused ? 'resume' : 'pause'))
+    $('.cancel-button', card).addEventListener('click', () => {
+      if (confirm('Brühvorgang wirklich abbrechen?')) controlBrew(state.serialNumber, 'cancel')
+    })
+    if (state.paused) $('.ring-caption', card).textContent = 'pausiert'
+
     const list = $('.brew-stats', card)
     list.hidden = false
     list.replaceChildren(...stats.map(([label, value]) => {
@@ -149,6 +159,17 @@ function renderDevice(state) {
   $('.meta', card).textContent = meta.join(' · ')
 
   return card
+}
+
+async function controlBrew(serialNumber, action) {
+  try {
+    await api(`/api/devices/${encodeURIComponent(serialNumber)}/control`, {
+      method: 'POST',
+      body: JSON.stringify({ action }),
+    })
+  } catch (err) {
+    alert(err.message)
+  }
 }
 
 function renderDeviceSelect() {

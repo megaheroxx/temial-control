@@ -119,6 +119,29 @@ test('presets can be listed, added and removed', async () => {
   assert.equal((await list()).length, initial.length)
 })
 
+test('cancel, pause and resume are forwarded as remoteTea', async () => {
+  for (const action of ['pause', 'resume', 'cancel']) {
+    const received = nextMessage(device)
+    const res = await fetch(`${base}/api/devices/${SERIAL}/control`, { method: 'POST', headers: auth, body: JSON.stringify({ action }) })
+    assert.equal(res.status, 202)
+    const message = await received
+    assert.equal(message.op, 'remoteTea')
+    assert.equal(message.receiverId, `device://${SERIAL}`)
+    assert.deepEqual(message.content, { action, userId: 0 })
+    assert.equal(app.hub.get(SERIAL)?.paused, action === 'pause')
+  }
+  const bad = await fetch(`${base}/api/devices/${SERIAL}/control`, { method: 'POST', headers: auth, body: JSON.stringify({ action: 'explode' }) })
+  assert.equal(bad.status, 400)
+})
+
+test('brewingComplete ends the brew immediately', async () => {
+  sendFromDevice('brewStatus', { remainingTotalTime: 90, temperature: 80 })
+  await waitFor(() => app.hub.get(SERIAL)?.brewStatus?.remainingTotalTime === 90)
+  sendFromDevice('brewingComplete', {})
+  await waitFor(() => app.hub.get(SERIAL)?.brewStatus?.remainingTotalTime === 0)
+  assert.ok(app.hub.recentLog().some((entry) => entry.type === 'brewingComplete'))
+})
+
 test('preset colour can be set and reset', async () => {
   const [preset] = await (await fetch(`${base}/api/presets`, { headers: auth })).json()
   const patch = (id: string, body: unknown) =>
