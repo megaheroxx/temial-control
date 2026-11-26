@@ -252,6 +252,10 @@ pytest
 | [custom_components/temial_control/](custom_components/temial_control/) | Home-Assistant-Integration (Python) |
 | [tests_ha/](tests_ha/) | Tests der Integration gegen ein echtes Home Assistant |
 
+## Mit KI erstellt
+
+Dieses Projekt wurde mithilfe von KI erstellt ([Claude Code](https://claude.com/claude-code) von Anthropic). Der Code ist geprüft und getestet. Falls dir trotzdem etwas komisch vorkommt, melde es bitte.
+
 ## Lizenz
 
 AGPL-3.0-or-later, wie das Freemial-Projekt, dessen Protokoll-Referenz hier übernommen wurde.
