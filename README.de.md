@@ -1,6 +1,6 @@
 # Temial Control
 
-[English](README.md) · **Deutsch**
+[English](README.md) · **Deutsch** · Made with AI 🤖
 
 Eigene Steuerzentrale für die **Vorwerk Temial**. Vorwerk hat die Cloud im Juli 2025 abgeschaltet. Diese App ersetzt sie lokal und baut dafür auf dem Protokoll auf, das das [Freemial-Projekt](https://freemial.github.io/) herausgefunden hat.
 
@@ -251,10 +251,6 @@ pytest
 | [android/](android/) | Android-App (Kotlin), Texte in `res/values` und `res/values-de` |
 | [custom_components/temial_control/](custom_components/temial_control/) | Home-Assistant-Integration (Python) |
 | [tests_ha/](tests_ha/) | Tests der Integration gegen ein echtes Home Assistant |
-
-## Mit KI erstellt
-
-Dieses Projekt wurde mithilfe von KI erstellt ([Claude Code](https://claude.com/claude-code) von Anthropic). Der Code ist geprüft und getestet. Falls dir trotzdem etwas komisch vorkommt, melde es bitte.
 
 ## Lizenz
 

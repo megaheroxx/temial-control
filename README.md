@@ -1,6 +1,6 @@
 # Temial Control
 
-**English** · [Deutsch](README.de.md)
+**English** · [Deutsch](README.de.md) · Made with AI 🤖
 
 A self-hosted control centre for the **Vorwerk Temial**. Vorwerk shut down the cloud in July 2025. This app replaces it locally, building on the protocol worked out by the [Freemial project](https://freemial.github.io/).
 
@@ -251,10 +251,6 @@ pytest
 | [android/](android/) | Android app (Kotlin), texts in `res/values` and `res/values-de` |
 | [custom_components/temial_control/](custom_components/temial_control/) | Home Assistant integration (Python) |
 | [tests_ha/](tests_ha/) | Integration tests against a real Home Assistant |
-
-## Made with AI
-
-This project was built with the help of AI ([Claude Code](https://claude.com/claude-code) by Anthropic). The code is reviewed and tested, but please report anything that looks off.
 
 ## License
 
