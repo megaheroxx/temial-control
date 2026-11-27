@@ -17,6 +17,19 @@ const at = (daysAgo: number, hour = 9) => {
   return date.getTime()
 }
 
+test('usage counts brews per tea name without cancelled ones', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'tc-history-'))
+  const history = new HistoryStore(dir)
+  await history.load()
+  history.start(brew('Sencha'), at(3))
+  history.start(brew('Sencha'), at(2))
+  history.start(brew('Assam'), at(1))
+  history.finish('1', 'cancelled')
+  history.start(brew('Rooibos'), at(0))
+  assert.deepEqual(history.usage(), { Sencha: 2, Rooibos: 1 })
+  await rm(dir, { recursive: true })
+})
+
 test('stats count cups per day, week and in total', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'tc-history-'))
   const history = new HistoryStore(dir)

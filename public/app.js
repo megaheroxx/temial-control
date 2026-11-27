@@ -78,6 +78,7 @@ function isBrewing(state) {
 }
 
 function renderDevices() {
+  renderQuickStatus()
   if (devices.size === 0) return
   $('#devices').replaceChildren(...[...devices.values()].map(renderDevice))
   renderDeviceSelect()
@@ -267,6 +268,7 @@ function renderPresets(selectedId = form.elements.preset.value) {
     tile('', t('brew.ownTea'), t('brew.ownTeaHint'), null),
   )
   markSelectedTile()
+  renderQuickGrid()
 }
 
 function markSelectedTile() {
@@ -608,6 +610,224 @@ $('#delete-preset').addEventListener('click', async () => {
   }
 })
 
+// --- Views: dashboard / quick start -------------------------------------------
+
+const VIEW_KEY = 'temial-control-view'
+/** Two taps on the same tile within this time start the brew. */
+const DOUBLE_TAP_MS = 600
+
+function setView(view) {
+  const next = view === 'quick' ? 'quick' : 'dashboard'
+  document.documentElement.dataset.view = next
+  for (const button of document.querySelectorAll('[data-set-view]')) {
+    button.setAttribute('aria-checked', String(button.dataset.setView === next))
+  }
+  try { localStorage.setItem(VIEW_KEY, next) } catch { /* private mode */ }
+  disarmTile()
+  window.scrollTo(0, 0)
+  // Re-sort by current usage; never while the quick view is already open, so tiles do not jump under a finger.
+  if (next === 'quick' && presetsLoaded) loadUsage()
+}
+
+for (const button of document.querySelectorAll('[data-set-view]')) {
+  button.addEventListener('click', () => setView(button.dataset.setView))
+}
+
+/** The device a quick start goes to: the picker's choice, else the first online one. */
+function targetDevice() {
+  const all = [...devices.values()]
+  const online = all.filter((d) => d.connected)
+  return online.find((d) => d.serialNumber === form.elements.device.value) ?? online[0] ?? all[0]
+}
+
+function tileMeta(preset) {
+  const parts = [`${preset.temperature} °C`, formatDuration(preset.duration)]
+  if (preset.infusions?.length) parts.push(`${preset.infusions.length + 1}×`)
+  return parts.join(' · ')
+}
+
+const SORT_KEY = 'temial-control-sort'
+/** 'usage': most brewed first, ties alphabetical; 'alpha': alphabetical only. */
+let sortMode = 'usage'
+try { if (localStorage.getItem(SORT_KEY) === 'alpha') sortMode = 'alpha' } catch { /* private mode */ }
+/** Brews per tea name, loaded when the page opens and when switching to the quick view. */
+let usage = {}
+let presetsLoaded = false
+
+const byName = (a, b) => a.name.localeCompare(b.name, locale, { sensitivity: 'base' })
+
+function sortedPresets() {
+  const count = (preset) => usage[preset.name] ?? 0
+  return [...presets].sort(sortMode === 'usage' ? (a, b) => count(b) - count(a) || byName(a, b) : byName)
+}
+
+async function loadUsage() {
+  try {
+    usage = await api('/api/usage')
+    renderQuickGrid()
+  } catch { /* keep the previous order */ }
+}
+
+function renderSortButton() {
+  $('#quick-sort').textContent = t(sortMode === 'usage' ? 'quick.sortUsage' : 'quick.sortAlpha')
+}
+
+$('#quick-sort').addEventListener('click', () => {
+  sortMode = sortMode === 'usage' ? 'alpha' : 'usage'
+  try { localStorage.setItem(SORT_KEY, sortMode) } catch { /* private mode */ }
+  renderSortButton()
+  renderQuickGrid()
+})
+
+function renderQuickGrid() {
+  disarmTile()
+  renderSortButton()
+  $('#quick-grid').replaceChildren(...sortedPresets().map((preset) => {
+    const meta = tileMeta(preset)
+    const small = el('small', {}, meta)
+    const button = el('button', { type: 'button', className: 'quick-tile' }, undefined)
+    button.style.setProperty('--tea', teaColor(preset))
+    button.setAttribute('aria-label', `${preset.name}, ${meta}`)
+    button.append(el('strong', {}, preset.name), small)
+    button.addEventListener('click', () => onTileTap(preset, button, small, meta))
+    return button
+  }))
+  $('#quick-empty').hidden = presets.length > 0
+}
+
+/** The tile that got its first tap and waits for the second one. */
+let armedTile = null
+
+function disarmTile() {
+  if (!armedTile) return
+  clearTimeout(armedTile.timer)
+  armedTile.button.classList.remove('armed')
+  armedTile.small.textContent = armedTile.meta
+  armedTile = null
+}
+
+function onTileTap(preset, button, small, meta) {
+  if (armedTile?.button === button) {
+    disarmTile()
+    startQuickBrew(preset, button)
+    return
+  }
+  disarmTile()
+  button.classList.add('armed')
+  small.textContent = t('quick.tapAgain')
+  armedTile = { button, small, meta, timer: setTimeout(disarmTile, DOUBLE_TAP_MS) }
+}
+
+async function startQuickBrew(preset, button) {
+  const target = targetDevice()
+  if (!target?.connected) return showToast(t('quick.noDevice'), 'error')
+  if (isBrewing(target)) return showToast(t('quick.alreadyBrewing'), 'error')
+  button.classList.add('busy')
+  try {
+    const body = { name: preset.name, presetId: preset.id, color: teaColor(preset) }
+    for (const field of FIELDS) body[field] = preset[field]
+    if (preset.infusions?.length) body.infusions = preset.infusions.map((step) => ({ ...step }))
+    await api(`/api/devices/${encodeURIComponent(target.serialNumber)}/brew`, { method: 'POST', body: JSON.stringify(body) })
+    navigator.vibrate?.(30)
+    showToast(t('brew.brewing', { name: preset.name }), 'success')
+    button.classList.add('started')
+    setTimeout(() => button.classList.remove('started'), 1500)
+  } catch (err) {
+    showToast(err.message, 'error')
+  } finally {
+    button.classList.remove('busy')
+  }
+}
+
+let toastTimer
+function showToast(text, kind) {
+  const toast = $('#quick-toast')
+  toast.textContent = text
+  toast.className = `quick-toast ${kind}`
+  toast.hidden = false
+  clearTimeout(toastTimer)
+  toastTimer = setTimeout(() => { toast.hidden = true }, 3500)
+}
+
+/** Compact status line at the bottom of the quick start view. */
+function renderQuickStatus() {
+  const bar = $('#quick-status')
+  const state = targetDevice()
+  let kind = 'offline'
+  let title = t('quick.noDevice')
+  let sub = ''
+  let progress = 0
+  let action = null
+
+  if (state && !state.connected) {
+    title = t('device.offline')
+    sub = t('device.waiting')
+  } else if (state && isBrewing(state)) {
+    const brew = state.brewStatus
+    const total = brew.estimatedTimePrewash + brew.estimatedTimeHeating + brew.estimatedTimeBrewing
+    progress = total > 0 ? Math.min(1, Math.max(0, 1 - brew.remainingTotalTime / total)) : 0
+    kind = 'brewing'
+    title = state.lastBrew?.name || t('device.tea')
+    const left = state.paused ? t('device.paused') : `${formatDuration(brew.remainingTotalTime)} ${t('device.remaining')}`
+    const infusion = state.session ? `${t('device.infusionOf', { index: state.session.index + 1, total: state.session.total })} · ` : ''
+    sub = `${infusion}${formatTemperature(brew.temperature)} · ${left}`
+    action = { label: t('device.cancel'), run: () => confirm(t('device.confirmCancel')) && controlBrew(state.serialNumber, 'cancel') }
+  } else if (state) {
+    const status = state.deviceStatus
+    const problem = status && PROBLEMS.find(([check]) => check(status))
+    if (problem) {
+      kind = 'problem'
+      title = t(problem[1])
+    } else if (state.scheduled && state.scheduled.startsAt > Date.now()) {
+      kind = 'ready'
+      title = t('device.scheduledTitle', { time: formatClock(state.scheduled.startsAt) })
+      sub = t('device.scheduledText', { name: state.scheduled.name, countdown: formatCountdown(state.scheduled.startsAt - Date.now()) })
+      action = { label: t('device.cancelTimer'), run: () => confirm(t('device.confirmCancelTimer')) && controlBrew(state.serialNumber, 'cancel') }
+    } else if (state.session) {
+      const { index, total } = state.session
+      kind = 'ready'
+      title = t('device.infusionDoneTitle', { index: index + 1, total })
+      if (index + 1 < total) {
+        sub = t('device.nextReady')
+        action = { label: t('device.startInfusion', { number: index + 2 }), primary: true, run: () => infusionAction(state.serialNumber, 'next') }
+      } else {
+        sub = t('device.enjoy')
+        action = { label: t('device.finish'), run: () => infusionAction(state.serialNumber, 'done') }
+      }
+    } else {
+      kind = 'ready'
+      title = status ? t('device.ready') : t('device.connected')
+      sub = status ? '' : t('device.waitingStatus')
+    }
+  }
+
+  bar.dataset.kind = kind
+  $('.quick-status-text strong', bar).textContent = title
+  $('.quick-status-text small', bar).textContent = sub
+  $('.quick-progress span', bar).style.width = `${Math.round(progress * 100)}%`
+  const button = $('.quick-action', bar)
+  button.hidden = !action
+  button.classList.toggle('primary', Boolean(action?.primary))
+  button.textContent = action?.label ?? ''
+  button.onclick = action?.run ?? null
+
+  // Device picker, only when several Temials are online.
+  const select = $('#quick-device')
+  const online = [...devices.values()].filter((d) => d.connected)
+  select.hidden = online.length <= 1
+  const key = online.map((d) => d.serialNumber).join(',')
+  if (select.dataset.key !== key) {
+    select.dataset.key = key
+    select.replaceChildren(...online.map((d) => el('option', { value: d.serialNumber }, `Temial ${d.serialNumber}`)))
+  }
+  if (state?.connected) select.value = state.serialNumber
+}
+
+$('#quick-device').addEventListener('change', (event) => {
+  form.elements.device.value = event.target.value
+  renderQuickStatus()
+})
+
 // --- Live updates -----------------------------------------------------------
 
 function connectEvents() {
@@ -647,6 +867,11 @@ function connectEvents() {
 $('#language').addEventListener('click', () => setLang(lang === 'de' ? 'en' : 'de'))
 
 async function init() {
+  // Reopen in the view used last (index.html already applied it before the first paint).
+  let storedView = 'dashboard'
+  try { storedView = localStorage.getItem(VIEW_KEY) ?? 'dashboard' } catch { /* private mode */ }
+  setView(storedView)
+  renderQuickStatus()
   // Inside the Android app the native settings screen is reachable from the app bar.
   if (navigator.userAgent.includes('TemialControlApp/')) {
     $('#app-settings').hidden = false
@@ -661,6 +886,8 @@ async function init() {
     }
     presets = await api('/api/presets')
     renderPresets()
+    presetsLoaded = true
+    if (document.documentElement.dataset.view === 'quick') loadUsage()
   } catch (err) {
     showMessage(err.message, 'error')
   }

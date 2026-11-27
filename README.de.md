@@ -7,6 +7,7 @@ Eigene Steuerzentrale für die **Vorwerk Temial**. Vorwerk hat die Cloud im Juli
 Die Temial verbindet sich per WebSocket direkt mit dieser App, sie ist also selbst der Freemial-kompatible Server. Dazu kommen:
 
 - **Web-Dashboard**: Live-Status (Deckel, Brühkammer, Frischwasser, Abwassertank, WLAN, Firmware) und Fortschritt des Brühvorgangs
+- **Schnellstart-Ansicht**: kompaktes Raster aller Presets; Tee doppeltippen startet das Brühen, unten eine kleine Statusleiste. Das Dashboard merkt sich die zuletzt genutzte Ansicht
 - **Tee brühen**: Name, Temperatur, Ziehzeit, Menge und Vorspülzeit frei wählbar
 - **Mehrere Aufgüsse**: bis zu 5 Aufgüsse derselben Blätter, jeder mit eigener Temperatur und Ziehzeit
 - **Später brühen**: Uhrzeit wählen, die Temial startet von selbst, auch wenn Server oder Handy zwischendurch aus sind

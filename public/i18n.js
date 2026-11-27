@@ -172,6 +172,18 @@ const STRINGS = {
     // Event log
     'log.title': 'Events',
     'log.setup': ({ detail }) => `Setup: ${detail}`,
+    // Views
+    'view.label': 'View',
+    'view.dashboard': 'Dashboard',
+    'view.quick': 'Quick start',
+    'quick.hint': 'Double-tap a tea to start brewing.',
+    'quick.tapAgain': 'Tap again to start',
+    'quick.empty': 'No presets yet. Create some in the dashboard.',
+    'quick.noDevice': 'No Temial connected',
+    'quick.alreadyBrewing': 'The Temial is already brewing.',
+    'quick.sortUsage': 'Most used',
+    'quick.sortAlpha': 'A–Z',
+    'quick.sortTitle': 'Change sort order',
   },
   de: {
     'app.connecting': 'verbinde …',
@@ -336,6 +348,18 @@ const STRINGS = {
     'setup.lostServerHint': 'Nutze stattdessen die Einrichtung in der Android-App oder richte die Temial von einem Laptop aus ein, auf dem der Server läuft.',
     'log.title': 'Ereignisse',
     'log.setup': ({ detail }) => `Einrichtung: ${detail}`,
+    // Ansichten
+    'view.label': 'Ansicht',
+    'view.dashboard': 'Dashboard',
+    'view.quick': 'Schnellstart',
+    'quick.hint': 'Tee doppeltippen, um das Brühen zu starten.',
+    'quick.tapAgain': 'Nochmal tippen',
+    'quick.empty': 'Noch keine Presets. Lege sie im Dashboard an.',
+    'quick.noDevice': 'Keine Temial verbunden',
+    'quick.alreadyBrewing': 'Die Temial brüht gerade schon.',
+    'quick.sortUsage': 'Häufigste',
+    'quick.sortAlpha': 'A–Z',
+    'quick.sortTitle': 'Sortierung ändern',
   },
 }
 

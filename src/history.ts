@@ -104,6 +104,15 @@ export class HistoryStore {
     }
   }
 
+  /** Number of non-cancelled brews per tea name (all time). */
+  usage(): Record<string, number> {
+    const counts: Record<string, number> = Object.create(null)
+    for (const entry of this.#entries) {
+      if (entry.status !== 'cancelled') counts[entry.name] = (counts[entry.name] ?? 0) + 1
+    }
+    return { ...counts }
+  }
+
   async flush() {
     await this.#saving
   }
