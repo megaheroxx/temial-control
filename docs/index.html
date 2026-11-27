@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Temial Control | Local control for the Vorwerk Temial</title>
+  <meta name="description" content="Temial Control replaces the discontinued Vorwerk Temial cloud. Brew, schedule and monitor your Temial on your own network from the browser, Android or Home Assistant.">
+  <link rel="canonical" href="https://megaheroxx.github.io/temial-control/">
+  <meta property="og:title" content="Temial Control | Local control for the Vorwerk Temial">
+  <meta property="og:description" content="Replaces the discontinued Vorwerk Temial cloud with a local server, web dashboard, Android app and Home Assistant integration.">
+  <meta property="og:image" content="https://megaheroxx.github.io/temial-control/screenshots/dashboard-light.png">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#121312" media="(prefers-color-scheme: dark)">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="wrap topbar-inner">
+      <a class="brand" href="#top" aria-label="Temial Control home">
+        <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-7 0-13 3.5-13 10 0 1.6.5 3 1.3 4.1C6.4 19.6 5 21 5 21l1 1s1.6-1.5 3.3-3.3A6 6 0 0 0 11 19c6.5 0 9-6 9-15Zm-9 13c-.6 0-1.1-.1-1.6-.3C11.6 14.4 14 12 16 10c-2.6 1.2-5.5 3.6-7.6 6.2A5.6 5.6 0 0 1 9 14c0-4.7 4.1-7.4 9-7.9-.4 6.4-2.6 10.9-7 10.9Z"/></svg>
+        <span>Temial Control</span>
+      </a>
+      <nav class="nav" aria-label="Sections">
+        <a href="#features">Features</a>
+        <a href="#screenshots">Screenshots</a>
+        <a href="#install">Installation</a>
+        <a class="nav-github" href="https://github.com/megaheroxx/temial-control">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="wrap hero-inner">
+        <div class="hero-text">
+          <p class="eyebrow">For the Vorwerk Temial</p>
+          <h1>Local control for the Vorwerk Temial</h1>
+          <p class="lead">Vorwerk shut down the Temial cloud in July 2025. Temial Control replaces it on your own network, with a web dashboard, an Android app and a Home Assistant integration.</p>
+          <div class="cta">
+            <a class="button primary" id="download-stable" href="https://github.com/megaheroxx/temial-control/releases/latest">Download latest release</a>
+            <a class="button secondary" href="#install">Installation</a>
+          </div>
+          <ul class="hero-points">
+            <li>No account, no cloud</li>
+            <li>Docker, Android, Home Assistant</li>
+            <li>English and German</li>
+          </ul>
+        </div>
+        <div class="hero-shots">
+          <picture class="shot-desktop">
+            <source srcset="screenshots/dashboard-dark.png" media="(prefers-color-scheme: dark)">
+            <img src="screenshots/dashboard-light.png" width="900" height="1532" alt="Temial Control dashboard while a tea is brewing">
+          </picture>
+          <img class="shot-phone" src="screenshots/quick-start.png" width="780" height="1520" alt="Quick start view on a phone">
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="wrap">
+        <h2>Features</h2>
+        <p class="section-lead">Brewing, monitoring and device setup without the Vorwerk cloud.</p>
+        <div class="features">
+          <article class="feature">
+            <h3>Brewing and presets</h3>
+            <p>Temperature, steeping time, volume and pre-wash. Presets with custom colours.</p>
+          </article>
+          <article class="feature">
+            <h3>Multiple infusions</h3>
+            <p>Up to five infusions of the same leaves, each with its own temperature and time.</p>
+          </article>
+          <article class="feature">
+            <h3>Brew later</h3>
+            <p>Scheduled brewing. The Temial starts on its own, even when the server is offline.</p>
+          </article>
+          <article class="feature">
+            <h3>Quick start</h3>
+            <p>All presets as tiles, sorted by usage. Double-tap to brew.</p>
+          </article>
+          <article class="feature">
+            <h3>Brew control</h3>
+            <p>Pause, resume and cancel a running brew.</p>
+          </article>
+          <article class="feature">
+            <h3>History and statistics</h3>
+            <p>Cups per day and week, litres and favourite teas. Includes brews started on the device.</p>
+          </article>
+          <article class="feature">
+            <h3>Device setup</h3>
+            <p>Connect new Temials to your Wi-Fi from the dashboard or the Android app.</p>
+          </article>
+          <article class="feature">
+            <h3>Notifications</h3>
+            <p>Android notifications when the tea is ready or a tank needs attention.</p>
+          </article>
+          <article class="feature">
+            <h3>Integrations</h3>
+            <p>REST API, server-sent events and a Home Assistant integration.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="screenshots" class="section alt">
+      <div class="wrap">
+        <h2>Screenshots</h2>
+        <p class="section-lead">Light and dark theme, desktop and mobile.</p>
+        <div class="gallery">
+          <figure><a href="screenshots/dashboard-light.png"><img src="screenshots/dashboard-light.png" width="900" height="1532" loading="lazy" alt="Dashboard with device status and brew form"></a><figcaption>Dashboard</figcaption></figure>
+          <figure><a href="screenshots/dashboard-dark.png"><img src="screenshots/dashboard-dark.png" width="900" height="1532" loading="lazy" alt="Dashboard in the dark theme"></a><figcaption>Dark theme</figcaption></figure>
+          <figure><a href="screenshots/quick-start.png"><img src="screenshots/quick-start.png" width="780" height="1520" loading="lazy" alt="Quick start view with preset tiles"></a><figcaption>Quick start</figcaption></figure>
+          <figure><a href="screenshots/setup.png"><img src="screenshots/setup.png" width="688" height="1067" loading="lazy" alt="Setting up a new Temial"></a><figcaption>Device setup</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="section">
+      <div class="wrap">
+        <h2>Installation</h2>
+        <p class="section-lead">Run the server, connect your Temial, then add the clients you need.</p>
+        <div class="install">
+          <article class="card">
+            <span class="step">1</span>
+            <h3>Server</h3>
+            <p>Docker image for amd64 and arm64, for example on a NAS or Raspberry Pi.</p>
+            <pre><code>curl -O https://raw.githubusercontent.com/megaheroxx/temial-control/main/docker-compose.yml
+docker compose up -d</code></pre>
+            <p class="small">Dashboard on port 3000. Without Docker: Node.js 22.18 or later, <code>npm install</code> and <code>npm start</code>.</p>
+            <a class="button secondary" href="https://github.com/megaheroxx/temial-control#docker">Documentation</a>
+          </article>
+          <article class="card">
+            <span class="step">2</span>
+            <h3>Android app</h3>
+            <p>Dashboard as an app, with notifications and device setup from the phone. Android 8 or later, no Google services required.</p>
+            <p class="small">On first start, enter the server address, for example <code>http://192.168.1.40:3000</code>.</p>
+            <a class="button primary" id="download-apk" href="https://github.com/megaheroxx/temial-control/releases/latest">Download APK</a>
+          </article>
+          <article class="card">
+            <span class="step">3</span>
+            <h3>Home Assistant</h3>
+            <p>Sensors, a button per preset and brew actions for automations. Configured in the UI, no YAML required.</p>
+            <p class="small">Install via HACS, then add the integration <em>Temial Control</em> with the server address.</p>
+            <a class="button secondary" href="https://my.home-assistant.io/redirect/hacs_repository/?owner=megaheroxx&amp;repository=temial-control&amp;category=integration">Open in HACS</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section alt">
+      <div class="wrap split">
+        <div>
+          <h2>Connecting a Temial</h2>
+          <p>Required once per device. The Temial then connects directly to your server.</p>
+        </div>
+        <ol class="steps">
+          <li>On the Temial, tap the grey bar at the top and select <em>Connect</em>. A QR code appears.</li>
+          <li>Scan the code in the Android app or in the dashboard.</li>
+          <li>Select your Wi-Fi. The Temial appears in the dashboard shortly after.</li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section">
+      <div class="wrap">
+        <h2>Good to know</h2>
+        <div class="features">
+          <article class="feature">
+            <h3>Local network only</h3>
+            <p>The device connection has no authentication, as with the original cloud. Do not expose the server to the internet.</p>
+          </article>
+          <article class="feature">
+            <h3>Access token</h3>
+            <p>Set <code>APP_TOKEN</code> to protect the dashboard and the API on your network.</p>
+          </article>
+          <article class="feature">
+            <h3>Protocol</h3>
+            <p>Based on the research of the <a href="https://freemial.github.io/">Freemial</a> project. Brew control follows the original Vorwerk app.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="wrap footer-inner">
+      <div>
+        <a class="brand" href="#top">
+          <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-7 0-13 3.5-13 10 0 1.6.5 3 1.3 4.1C6.4 19.6 5 21 5 21l1 1s1.6-1.5 3.3-3.3A6 6 0 0 0 11 19c6.5 0 9-6 9-15Zm-9 13c-.6 0-1.1-.1-1.6-.3C11.6 14.4 14 12 16 10c-2.6 1.2-5.5 3.6-7.6 6.2A5.6 5.6 0 0 1 9 14c0-4.7 4.1-7.4 9-7.9-.4 6.4-2.6 10.9-7 10.9Z"/></svg>
+          <span>Temial Control</span>
+        </a>
+        <p class="small">Licensed under <a href="https://github.com/megaheroxx/temial-control/blob/main/LICENSE">AGPL-3.0</a>. Made with AI.</p>
+      </div>
+      <nav class="footer-links" aria-label="Project links">
+        <a href="https://github.com/megaheroxx/temial-control">Source code</a>
+        <a href="https://github.com/megaheroxx/temial-control/releases">Releases</a>
+        <a href="https://github.com/megaheroxx/temial-control/issues">Issues</a>
+        <a href="https://github.com/megaheroxx/temial-control/blob/main/README.md">Documentation</a>
+      </nav>
+      <p class="small trademark">Temial Control is an independent community project and is not affiliated with Vorwerk. Temial is a trademark of Vorwerk SE &amp; Co. KG.</p>
+    </div>
+  </footer>
+  <script src="releases.js" defer></script>
+</body>
+</html>
