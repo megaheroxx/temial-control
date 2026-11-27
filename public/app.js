@@ -669,7 +669,7 @@ async function loadUsage() {
 }
 
 function renderSortButton() {
-  $('#quick-sort').textContent = t(sortMode === 'usage' ? 'quick.sortUsage' : 'quick.sortAlpha')
+  $('#quick-sort').textContent = t(sortMode === 'usage' ? 'quick.sortAlpha' : 'quick.sortUsage')
 }
 
 $('#quick-sort').addEventListener('click', () => {
