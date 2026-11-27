@@ -7,6 +7,7 @@ A self-hosted control centre for the **Vorwerk Temial**. Vorwerk shut down the c
 The Temial connects directly to this app over WebSocket, so the app itself is the Freemial-compatible server. On top of that you get:
 
 - **Web dashboard**: live status (lid, brewing chamber, fresh water, waste water tank, Wi-Fi, firmware) and brewing progress
+- **Quick start view**: a compact grid of all presets; double-tap a tea to start brewing, with a small status bar at the bottom. The dashboard remembers which view you used last
 - **Brew tea**: freely choose name, temperature, steeping time, volume and pre-wash time
 - **Multiple infusions**: up to 5 infusions of the same leaves, each with its own temperature and steeping time
 - **Brew later**: pick a time and the Temial starts on its own, even if the server or phone is off in the meantime
@@ -109,6 +110,7 @@ All routes live under `/api`. If `APP_TOKEN` is set, every request needs the hea
 | `POST` | `/api/devices/:serial/brew` | Brew. Body: `{ name, temperature, duration, volume, preWashTime }`, optionally `infusions: [{ temperature, duration }, …]` for further infusions (up to 5 in total) and `startInSeconds` for a timer (default 10, at most 86400). With `presetId` (and optionally `color`) the Temial shows the preset's name instead of "Manual tea" |
 | `POST` | `/api/devices/:serial/infusion` | Multiple infusions: `{ "action": "next" }` starts the next one, `{ "action": "done" }` finishes the session |
 | `POST` | `/api/devices/:serial/control` | Control a running brew. Body: `{ "action": "cancel" }`, `"pause"` or `"resume"` |
+| `GET` | `/api/usage` | Number of brews per tea name (without cancelled ones) |
 | `GET` | `/api/stats` | Statistics: cups today, this week, in total, litres, last 7 days, favourite teas |
 | `GET` | `/api/history?limit=50` | History of brews, newest first |
 | `GET` | `/api/presets` | List presets |

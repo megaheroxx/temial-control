@@ -6,6 +6,7 @@
   <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#121312" media="(prefers-color-scheme: dark)">
   <title>Temial Control</title>
+  <script>try { if (localStorage.getItem('temial-control-view') === 'quick') document.documentElement.dataset.view = 'quick' } catch { /* private mode */ }</script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -24,7 +25,21 @@
   </header>
 
   <main>
-    <section id="devices" aria-live="polite">
+    <div class="segmented view-switch" role="radiogroup" data-i18n-aria-label="view.label">
+      <button type="button" class="segment" data-set-view="dashboard" role="radio" aria-checked="true" data-i18n="view.dashboard"></button>
+      <button type="button" class="segment" data-set-view="quick" role="radio" aria-checked="false" data-i18n="view.quick"></button>
+    </div>
+
+    <section id="quick" class="quick-only" data-i18n-aria-label="brew.presets">
+      <div class="quick-bar">
+        <p class="quick-hint" data-i18n="quick.hint"></p>
+        <button type="button" id="quick-sort" class="quick-sort" data-i18n-title="quick.sortTitle"></button>
+      </div>
+      <div class="quick-grid" id="quick-grid"></div>
+      <p class="quick-empty" id="quick-empty" hidden data-i18n="quick.empty"></p>
+    </section>
+
+    <section id="devices" class="dash-only" aria-live="polite">
       <div class="card empty">
         <div class="empty-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><path d="M4 8h13v5a6 6 0 0 1-6 6H10a6 6 0 0 1-6-6V8Zm13 1h1.5a2.5 2.5 0 0 1 0 5H17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 2.5c0 1 1 1 1 2s-1 1-1 2M12 2.5c0 1 1 1 1 2s-1 1-1 2" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
@@ -34,7 +49,7 @@
       </div>
     </section>
 
-    <section class="card" id="brew">
+    <section class="card dash-only" id="brew">
       <div class="section-head">
         <h2 data-i18n="brew.title"></h2>
         <label class="device-picker">
@@ -109,7 +124,7 @@
       </form>
     </section>
 
-    <section class="card" id="stats">
+    <section class="card dash-only" id="stats">
       <div class="section-head"><h2 data-i18n="stats.title"></h2></div>
       <div class="stat-tiles">
         <div class="stat"><span class="stat-value" id="stat-today">–</span><span class="stat-label" data-i18n="stats.today"></span></div>
@@ -136,7 +151,7 @@
       </div>
     </section>
 
-    <section class="card" id="setup">
+    <section class="card dash-only" id="setup">
       <details>
         <summary><h2 data-i18n="setup.title"></h2></summary>
         <div id="app-setup" class="app-setup" hidden>
@@ -202,7 +217,7 @@
       </details>
     </section>
 
-    <section class="card">
+    <section class="card dash-only">
       <details>
         <summary><h2 data-i18n="log.title"></h2></summary>
         <ol id="log"></ol>
@@ -211,6 +226,20 @@
   </main>
 
   <footer data-i18n-html="app.footer"></footer>
+
+  <div id="quick-status" class="quick-status quick-only" data-kind="offline">
+    <p id="quick-toast" class="quick-toast" role="status" hidden></p>
+    <div class="quick-progress"><span></span></div>
+    <div class="quick-status-row">
+      <span class="quick-dot" aria-hidden="true"></span>
+      <div class="quick-status-text" aria-live="polite">
+        <strong></strong>
+        <small></small>
+      </div>
+      <select id="quick-device" class="quick-device" data-i18n-aria-label="brew.device" hidden></select>
+      <button type="button" class="quick-action" hidden></button>
+    </div>
+  </div>
 
   <template id="device-template">
     <article class="card device">

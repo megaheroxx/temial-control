@@ -163,6 +163,9 @@ export async function createApp({ dataDir, token, baseHost, setupTarget, languag
       case 'GET /stats':
         return sendJson(res, 200, history.stats())
 
+      case 'GET /usage':
+        return sendJson(res, 200, history.usage())
+
       case 'GET /presets':
         return sendJson(res, 200, presets.list())
 
